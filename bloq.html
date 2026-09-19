@@ -453,7 +453,7 @@ function tpt(f,rand){if(f==='_mouse_')return{x:IO.mx,y:IO.my};if(f==='_random_'|
 function touching(s,o){if(o==='_edge_')return s.x<=-232||s.x>=232||s.y<=-172||s.y>=172;if(o==='_mouse_')return Math.hypot(IO.mx-s.x,IO.my-s.y)<s.size/100*22;const r=s.size/100*20;return PROJ.sprites.some(t=>t.name===o&&t!==s&&t.vis&&Math.hypot(t.x-s.x,t.y-s.y)<r+t.size/100*20);}
 
 /* ---------- DATA MODEL ---------- */
-function newSprite(name,art,cos){return{id:uid('s'),name,x:0,y:0,dir:90,size:100,vis:1,rot:'lr',cos:cos||[{name:'c1',art:art||'dog'}],cn:0,vol:100,ghost:0,fx:{},scripts:[],vars:[],lists:[],pen:{down:0,color:'#1a5cff',size:4},clone:0,bub:null};}
+function newSprite(name,art,cos){return{id:uid('s'),name,x:0,y:0,dir:90,size:100,vis:1,rot:'all',cos:cos||[{name:'c1',art:art||'dog'}],cn:0,vol:100,ghost:0,fx:{},scripts:[],vars:[],lists:[],pen:{down:0,color:'#1a5cff',size:4},clone:0,bub:null};}
 function newStage(){return{id:'stage',name:'Stage',stage:1,cos:[{name:'sky',fill:'#8fd3ff'},{name:'grass',fill:'#bfe9a0'},{name:'night',fill:'#141a3a'},{name:'space',fill:'#0b1030'},{name:'cave',fill:'#2a2440'},{name:'sunset',fill:'#ffb27a'}],cn:0,scripts:[],vars:[],lists:[]};}
 const allLists=sp=>[...PROJ.stage.lists,...(sp&&sp.lists||[])];
 const fList=(sp,n)=>(sp&&sp.lists&&sp.lists.find(l=>l.name===n))||PROJ.stage.lists.find(l=>l.name===n);
