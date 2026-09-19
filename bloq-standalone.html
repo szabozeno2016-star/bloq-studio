@@ -1,0 +1,1992 @@
+<title>Bloq Studio</title>
+<meta name="description" content="A Scratch-familiar block programming studio with a live runtime and one-tap Builds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&display=swap">
+<style>
+:root{
+  --bg:#f1f0f7; --panel:#ffffff; --panel-2:#f7f6fb; --ink:#1f1b2e; --muted:#6c6883;
+  --accent:#2b8fff; --accent-ink:#ffffff; --line:#e5e2f0; --line-2:#eeecf6;
+  --shadow:0 1px 2px rgba(28,22,54,.06),0 8px 24px rgba(28,22,54,.08);
+  --shadow-sm:0 1px 2px rgba(28,22,54,.08);
+  --good:#2fbf71; --warn:#ff9f1c; --bad:#ef476f;
+  --motion:#4c97ff; --looks:#9966ff; --sound:#cf63cf; --events:#ffbf00; --control:#ffab19;
+  --sensing:#5cb1d6; --operators:#59c059; --variables:#ff8c1a; --lists:#ff661a; --myblocks:#ff6680;
+  --radius:14px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme:dark){
+    --bg:#131826; --panel:#1d2333; --panel-2:#171c29; --ink:#eaf0fb; --muted:#98a3bd;
+    --line:#2c3550; --line-2:#242c42; --accent:#5aa9ff; --panel-hi:#242c42;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131826; --panel:#1d2333; --panel-2:#171c29; --ink:#eaf0fb; --muted:#98a3bd;
+  --line:#2c3550; --line-2:#242c42; --accent:#5aa9ff; --panel-hi:#242c42;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;font-size:14px;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+h1,h2,h3{font-family:Fredoka,sans-serif;margin:0}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* ---- Top bar ---- */
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;z-index:20}
+.brand{display:flex;align-items:center;gap:9px;font-family:Fredoka;font-weight:700;font-size:20px;letter-spacing:.2px;user-select:none}
+.brand .mark{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 210deg,var(--motion),var(--looks),var(--sound),var(--events),var(--operators),var(--motion));display:grid;place-items:center;color:#fff;font-size:17px;box-shadow:var(--shadow-sm)}
+.brand small{font-family:Nunito;font-weight:700;color:var(--muted);font-size:11px;background:var(--panel-2);border:1px solid var(--line);padding:1px 7px;border-radius:20px;letter-spacing:.3px}
+.spacer{flex:1}
+.tbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:10px;font-weight:700;font-size:13px}
+.tbtn:hover{background:var(--panel-2)}
+.tbtn.ghost{border-color:transparent;background:transparent}
+.tbtn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.tbtn.primary:hover{filter:brightness(1.06)}
+.run-controls{display:flex;gap:6px;align-items:center}
+.flag{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;font-size:18px}
+.flag.go{color:var(--good)} .flag.go.active{background:rgba(47,191,113,.14);border-color:var(--good)}
+.flag.stop{color:var(--bad)}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:12px;padding:5px 10px;border-radius:8px}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow-sm)}
+
+/* ---- Main layout ---- */
+.main{flex:1;display:grid;grid-template-columns:270px 1fr 420px;min-height:0}
+.col{min-height:0;min-width:0;display:flex;flex-direction:column}
+.palette{background:var(--panel);border-right:1px solid var(--line)}
+.stagecol{background:var(--panel);border-left:1px solid var(--line)}
+
+/* ---- Palette ---- */
+.pal-search{padding:10px;border-bottom:1px solid var(--line-2)}
+.pal-search input{width:100%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:9px;padding:8px 10px;font-weight:600}
+.pal-body{flex:1;display:flex;min-height:0}
+.cats{width:64px;overflow-y:auto;border-right:1px solid var(--line-2);padding:6px 0;background:var(--panel-2)}
+.cat{width:100%;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;color:var(--muted);font-weight:700;font-size:9.5px;letter-spacing:.2px}
+.cat .dot{width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 3px var(--panel-2)}
+.cat.on{color:var(--ink)} .cat.on .dot{box-shadow:0 0 0 3px var(--panel),0 0 0 4px currentColor}
+.blocks{flex:1;overflow-y:auto;padding:8px 10px 40px}
+.pal-head{font-family:Fredoka;font-weight:600;font-size:15px;margin:10px 2px 8px;color:var(--ink);position:sticky;top:-8px;background:linear-gradient(var(--panel),var(--panel) 70%,transparent);padding-top:6px;z-index:1}
+.pal-head:first-child{margin-top:2px}
+.mk-btn{display:block;width:100%;border:1px dashed var(--line);background:var(--panel-2);color:var(--ink);border-radius:10px;padding:8px;font-weight:700;margin:6px 0 2px}
+.mk-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ---- Blocks ---- */
+.block{position:relative;display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;color:#fff;font-weight:700;font-size:13px;padding:7px 12px;border-radius:6px;user-select:none;line-height:1.5;box-shadow:0 1px 0 rgba(0,0,0,.12);cursor:grab}
+.block.dragging{cursor:grabbing;opacity:.96}
+.block .lbl{white-space:nowrap}
+.block.hat{border-top-left-radius:16px;border-top-right-radius:16px;padding-top:12px}
+.block.cap{border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+.block.reporter{border-radius:20px;padding:5px 12px;font-size:12.5px}
+.block.bool{border-radius:0;padding:5px 16px;font-size:12.5px;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
+.block .notch{position:absolute;left:14px;height:4px;width:20px;background:inherit}
+.block .notch.top{top:-4px;border-radius:0 0 4px 4px}
+.pal-block{margin:7px 0}
+.pal-block .block{cursor:grab}
+
+/* input slots */
+.slot{background:rgba(255,255,255,.92);color:#1f1b2e;border-radius:12px;min-width:30px;text-align:center;border:0;padding:3px 8px;font-weight:700;font-size:12.5px;outline:none}
+.slot.num{border-radius:20px}
+.slot.txt{border-radius:12px}
+.slot.wide{min-width:64px}
+.slot-menu{background:rgba(255,255,255,.92);color:#1f1b2e;border-radius:12px;border:0;padding:3px 6px;font-weight:700;font-size:12.5px}
+.slot.drop-hi,.boolslot.drop-hi{box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.boolslot{display:inline-block;min-width:30px;min-height:22px;background:rgba(0,0,0,.18);clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,9px 100%,0 50%)}
+.embed{display:inline-flex}
+/* C-block */
+.c-wrap{display:flex;flex-direction:column}
+.c-branch{margin-left:14px;border-left:8px solid;border-top:0;min-height:22px;padding:4px 0 4px 0;border-radius:0 0 0 6px}
+.c-foot{height:12px;border-radius:0 0 6px 6px;margin-top:-2px}
+.c-mouth{min-height:22px;min-width:40px}
+.stack-slot{display:flex;flex-direction:column;gap:0}
+.stack-slot .block{margin:0}
+.stack-slot .block+.c-wrap,.stack-slot .c-wrap+.block{margin-top:0}
+
+/* ---- Workspace ---- */
+.workspace{position:relative;flex:1;overflow:hidden;background:
+  radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0/22px 22px, var(--panel-2)}
+.ws-canvas{position:absolute;inset:0;transform-origin:0 0}
+.script{position:absolute}
+.script.snapping{filter:drop-shadow(0 0 0 rgba(0,0,0,0))}
+.ws-tools{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.ws-tools button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:16px;font-weight:800;box-shadow:var(--shadow-sm)}
+.ws-hint{position:absolute;left:16px;top:12px;color:var(--muted);font-weight:700;font-size:12.5px;pointer-events:none;max-width:280px}
+.ghost-drop{position:absolute;border:2px dashed var(--accent);border-radius:8px;pointer-events:none;background:rgba(43,143,255,.08);z-index:900}
+.ctx{position:fixed;z-index:2000;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:5px;min-width:160px}
+.ctx button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);padding:7px 10px;border-radius:7px;font-weight:700;font-size:13px}
+.ctx button:hover{background:var(--panel-2)}
+.ctx hr{border:0;border-top:1px solid var(--line-2);margin:4px 2px}
+
+/* ---- Stage ---- */
+.stage-top{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line-2)}
+.stage-top .ttl{font-family:Fredoka;font-weight:600;font-size:15px}
+.stage-wrap{padding:10px;display:flex;justify-content:center}
+.stage-box{position:relative;width:400px;height:300px;border-radius:12px;overflow:hidden;background:#fff;box-shadow:var(--shadow);border:1px solid var(--line)}
+#stage{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.stage-box.big{width:100%;max-width:640px;height:480px}
+.ask-bar{position:absolute;left:0;right:0;bottom:0;display:none;gap:6px;padding:8px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);align-items:center}
+.ask-bar.on{display:flex}
+.ask-bar input{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-weight:700}
+.ask-bar button{border:0;background:var(--accent);color:#fff;border-radius:8px;width:32px;height:32px;font-weight:800}
+
+/* sprite panel */
+.sprite-panel{flex:1;display:flex;flex-direction:column;min-height:0;border-top:1px solid var(--line)}
+.sp-props{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 8px;padding:10px 12px;align-items:center;border-bottom:1px solid var(--line-2)}
+.sp-props label{color:var(--muted);font-weight:800;font-size:11px}
+.sp-props input{width:100%;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:5px 7px;font-weight:700;color:var(--ink)}
+.sp-props .name{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.sp-props .name input{font-size:14px}
+.sp-list{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;padding:10px;align-content:start}
+.sp-card{position:relative;border:2px solid var(--line);background:var(--panel);border-radius:12px;padding:6px 4px 5px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.sp-card.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,143,255,.16)}
+.sp-card .thumb{width:100%;height:44px;display:grid;place-items:center;font-size:26px}
+.sp-card .nm{font-weight:800;font-size:11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-card .x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-weight:800;font-size:12px;display:none}
+.sp-card:hover .x{display:block}
+.sp-add{border:2px dashed var(--line);border-radius:12px;background:var(--panel-2);color:var(--muted);font-size:24px;font-weight:800;display:grid;place-items:center;min-height:74px}
+.sp-add:hover{border-color:var(--accent);color:var(--accent)}
+.stage-thumb{width:70px;border-left:1px solid var(--line)}
+
+/* ---- Overlays ---- */
+.overlay{position:fixed;inset:0;background:rgba(20,16,38,.42);backdrop-filter:blur(3px);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:5vh 16px}
+.overlay.on{display:flex}
+.sheet{width:100%;max-width:1000px;max-height:90vh;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;animation:pop .16s ease}
+@keyframes pop{from{transform:translateY(8px) scale(.99);opacity:.4}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.sheet-head h2{font-size:21px}
+.sheet-head .sub{color:var(--muted);font-weight:700;font-size:12.5px}
+.sheet-head .kbd{margin-left:auto;color:var(--muted);font-weight:800;font-size:11px}
+.kbd b{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-family:Fredoka}
+.sheet-body{overflow:auto;padding:16px 20px 22px}
+.builds-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:20px;padding:5px 12px;font-weight:800;font-size:12px}
+.chip.on{background:var(--accent);color:#fff;border-color:transparent}
+.builds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.build-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s}
+.build-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.build-prev{height:96px;display:grid;place-items:center;font-size:40px;position:relative}
+.build-prev .diff{position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;background:rgba(0,0,0,.32);color:#fff;padding:2px 8px;border-radius:20px}
+.build-info{padding:11px 13px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
+.build-info h3{font-size:15.5px}
+.build-info p{margin:0;color:var(--muted);font-weight:600;font-size:12px;line-height:1.4;flex:1}
+.build-tags{display:flex;gap:4px;flex-wrap:wrap}
+.build-tags span{font-size:10px;font-weight:800;color:var(--muted);background:var(--panel-2);border:1px solid var(--line-2);padding:1px 7px;border-radius:6px}
+.build-actions{display:flex;gap:6px;margin-top:4px}
+.build-actions button{flex:1;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-weight:800;font-size:12.5px;padding:7px}
+.build-actions .add{background:var(--accent);color:#fff;border-color:transparent}
+
+/* command palette */
+.cmdk{width:100%;max-width:600px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;animation:pop .14s ease}
+.cmdk input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);padding:16px 18px;font-size:17px;font-weight:700;outline:none;font-family:Fredoka}
+.cmdk .results{max-height:52vh;overflow:auto;padding:6px}
+.cmdk .res{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer}
+.cmdk .res.sel{background:var(--accent);color:#fff}
+.cmdk .res.sel .r-sub{color:rgba(255,255,255,.85)}
+.cmdk .r-ico{font-size:20px;width:26px;text-align:center}
+.cmdk .r-main{font-weight:800}
+.cmdk .r-sub{color:var(--muted);font-weight:700;font-size:11.5px}
+.cmdk .r-tag{margin-left:auto;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;opacity:.7}
+
+/* config panel */
+.cfg-body{display:grid;gap:12px;max-width:520px}
+.cfg-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2)}
+.cfg-row .cl{font-weight:800}.cfg-row .cd{color:var(--muted);font-weight:600;font-size:12px}
+.cfg-row input[type=number],.cfg-row input[type=text],.cfg-row select{width:110px;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:7px 9px;font-weight:800;color:var(--ink)}
+.switch{width:46px;height:26px;border-radius:20px;border:0;background:var(--line);position:relative}
+.switch.on{background:var(--good)}
+.switch b{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .14s}
+.switch.on b{left:23px}
+
+/* variables monitors on stage */
+.monitor{position:absolute;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;color:#3a3a48;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.monitor .mv{background:var(--variables);color:#fff;border-radius:4px;padding:1px 7px;min-width:26px;text-align:center}
+
+/* toast + help */
+.toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:11px;font-weight:800;font-size:13px;box-shadow:var(--shadow);animation:pop .16s ease}
+.help-bubble{position:absolute;right:14px;bottom:60px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;z-index:6;display:none}
+.help-bubble.on{display:block}
+.help-bubble h4{margin:0 0 3px;font-family:Fredoka;font-size:14px}
+.help-bubble p{margin:0 0 9px;color:var(--muted);font-weight:600;font-size:12px}
+.help-bubble .ha{display:flex;gap:6px}
+.help-bubble button{flex:1;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-weight:800;font-size:12px;padding:6px}
+.help-bubble button.go{background:var(--accent);color:#fff;border:0}
+
+.empty-note{color:var(--muted);font-weight:700;font-size:13px;padding:14px;text-align:center}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:20px;border:3px solid var(--panel)}
+.cats::-webkit-scrollbar-thumb,.blocks::-webkit-scrollbar-thumb{border-color:var(--panel-2)}
+
+@media (max-width:1120px){ .main{grid-template-columns:230px 1fr 360px} .stage-box{width:340px;height:255px} }
+@media (max-width:900px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}
+  .palette{max-height:34vh;border-right:0;border-bottom:1px solid var(--line)}
+  .stagecol{border-left:0;border-bottom:1px solid var(--line)}
+  .pal-body{max-height:26vh}
+}
+</style>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><span class="mark">◆</span>Bloq<span style="color:var(--accent)">Studio</span><small>familiar blocks · 1.5× faster</small></div>
+    <div class="spacer"></div>
+    <div class="run-controls">
+      <button class="flag go" id="btnFlag" title="Green flag — run (Space)">⚑</button>
+      <button class="flag stop" id="btnStop" title="Stop everything">⬤</button>
+    </div>
+    <div class="seg" id="modeSeg" title="Editor mode">
+      <button data-mode="beginner">Beginner</button>
+      <button data-mode="advanced" class="on">Advanced</button>
+    </div>
+    <button class="tbtn ghost" id="btnCmd" title="Quick command (Ctrl+K)">⌘K</button>
+    <button class="tbtn ghost" id="btnMenu">⋯</button>
+  </div>
+
+  <div class="main">
+    <!-- Palette -->
+    <div class="col palette">
+      <div class="pal-search"><input id="palSearch" placeholder="Search blocks…" autocomplete="off"></div>
+      <div class="pal-body">
+        <div class="cats" id="cats"></div>
+        <div class="blocks" id="blocks"></div>
+      </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="col">
+      <div class="workspace" id="workspace">
+        <div class="ws-canvas" id="wsCanvas"></div>
+        <div class="ws-hint" id="wsHint">Drag blocks here from the palette. Click a stack to run it. Press <b>⚑</b> to run everything.</div>
+        <div class="ws-tools">
+          <button id="zoomIn" title="Zoom in">+</button>
+          <button id="zoomOut" title="Zoom out">−</button>
+          <button id="zoomReset" title="Reset view" style="font-size:13px">⤢</button>
+          <button id="cleanup" title="Clean up blocks" style="font-size:13px">✧</button>
+        </div>
+        <div class="help-bubble" id="helpBubble"></div>
+      </div>
+    </div>
+
+    <!-- Stage + sprites -->
+    <div class="col stagecol">
+      <div class="stage-top">
+        <div class="ttl">Stage</div>
+        <div style="display:flex;gap:6px">
+          <button class="tbtn ghost" id="btnFull" title="Fullscreen stage">⤢</button>
+        </div>
+      </div>
+      <div class="stage-wrap"><div class="stage-box" id="stageBox">
+        <canvas id="stage" width="480" height="360"></canvas>
+        <div class="ask-bar" id="askBar"><input id="askInput" placeholder="Type your answer…"><button id="askOk">✓</button></div>
+      </div></div>
+      <div class="sprite-panel">
+        <div class="sp-props" id="spProps"></div>
+        <div style="display:flex;min-height:0;flex:1">
+          <div class="sp-list" id="spList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Builds overlay -->
+<div class="overlay" id="buildsOverlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div><h2>✦ Builds</h2><div class="sub">Pick a complete game to build instantly — or a reusable system. All real, editable blocks.</div></div>
+      <div class="kbd">secret: <b>Shift</b> + <b>0</b></div>
+      <button class="tbtn ghost" id="buildsClose" style="font-size:18px">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="builds-filter" id="buildsFilter"></div>
+      <div class="builds-grid" id="buildsGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Build config overlay -->
+<div class="overlay" id="cfgOverlay">
+  <div class="sheet" style="max-width:560px">
+    <div class="sheet-head"><div><h2 id="cfgTitle">Configure</h2><div class="sub" id="cfgSub"></div></div>
+      <button class="tbtn ghost" id="cfgClose" style="font-size:18px">✕</button></div>
+    <div class="sheet-body"><div class="cfg-body" id="cfgBody"></div>
+      <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+        <button class="tbtn" id="cfgCancel">Cancel</button>
+        <button class="tbtn primary" id="cfgAdd">Add Build to Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Command palette -->
+<div class="overlay" id="cmdOverlay" style="align-items:flex-start;padding-top:12vh">
+  <div class="cmdk">
+    <input id="cmdInput" placeholder="Type a command…  e.g. add a health system, create a platformer, add coins" autocomplete="off">
+    <div class="results" id="cmdResults"></div>
+  </div>
+</div>
+
+<!-- Menu overlay -->
+<div class="overlay" id="menuOverlay">
+  <div class="sheet" style="max-width:460px">
+    <div class="sheet-head"><h2>Project</h2><button class="tbtn ghost" id="menuClose" style="font-size:18px;margin-left:auto">✕</button></div>
+    <div class="sheet-body" style="display:grid;gap:8px">
+      <button class="tbtn" id="mNew">🆕 New project</button>
+      <button class="tbtn" id="mExport">⬇️ Export project (.json)</button>
+      <button class="tbtn" id="mImport">⬆️ Import project (.json)</button>
+      <button class="tbtn" id="mTheme">🌗 Toggle light / dark</button>
+      <div style="color:var(--muted);font-weight:700;font-size:12px;padding:6px 2px">Autosaves to this browser. <span id="saveInfo"></span></div>
+    </div>
+  </div>
+</div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   BLOQ STUDIO — a Scratch-familiar block programming studio.
+   Original implementation. Not affiliated with or endorsing Scratch/MIT.
+   Stage model grounded in Scratch conventions: 480x360, origin center,
+   x[-240,240] y[-180,180] +y up; direction 0=up 90=right, clockwise.
+   ==========================================================================*/
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const uid=(p='b')=>p+Math.random().toString(36).slice(2,9);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const toNum=v=>{const n=parseFloat(v);return isNaN(n)?0:n;};
+const CAT_COLORS={motion:'#4c97ff',looks:'#9966ff',sound:'#cf63cf',events:'#ffbf00',control:'#ffab19',sensing:'#5cb1d6',operators:'#59c059',variables:'#ff8c1a',lists:'#ff661a',myblocks:'#ff6680'};
+
+/* ---------------------------------------------------------------------------
+   BLOCK REGISTRY
+   Each def: {cat, shape, spec, run?(gen for commands), get?(fn for reporters)}
+   spec parts: string (label) | {i:name,t:'num'|'txt',d:default} | {i,t:'menu',d,m:[...]}
+   | {i,t:'bool'} (boolean slot) | {i,t:'stack'} (C substack, second = 'stack2')
+---------------------------------------------------------------------------*/
+const N=(i,d=0)=>({i,t:'num',d}), T=(i,d='')=>({i,t:'txt',d}), M=(i,d,m)=>({i,t:'menu',d,m});
+const B=(i)=>({i,t:'bool'}), S=(i='SUBSTACK')=>({i,t:'stack'});
+const DEG=Math.PI/180;
+const DEFS={};
+function def(op,o){DEFS[op]=o;}
+
+/* ---- MOTION ---- */
+def('motion_movesteps',{cat:'motion',shape:'stack',spec:['move ',N('STEPS',10),' steps'],
+  *run(c,b){const s=c.sprite,d=(90-s.direction)*DEG,n=c.arg(b,'STEPS');s.x+=Math.cos(d)*n;s.y+=Math.sin(d)*n;}});
+def('motion_turnright',{cat:'motion',shape:'stack',spec:['turn ↻ ',N('DEG',15),' degrees'],
+  *run(c,b){c.sprite.direction=wrapDir(c.sprite.direction+c.arg(b,'DEG'));}});
+def('motion_turnleft',{cat:'motion',shape:'stack',spec:['turn ↺ ',N('DEG',15),' degrees'],
+  *run(c,b){c.sprite.direction=wrapDir(c.sprite.direction-c.arg(b,'DEG'));}});
+def('motion_pointindirection',{cat:'motion',shape:'stack',spec:['point in direction ',N('DIR',90)],
+  *run(c,b){c.sprite.direction=wrapDir(c.arg(b,'DIR'));}});
+def('motion_pointtowards',{cat:'motion',shape:'stack',spec:['point towards ',M('TO','_mouse_',()=>spriteMenu(true))],
+  *run(c,b){const t=targetPoint(c,c.field(b,'TO'));if(t){const dx=t.x-c.sprite.x,dy=t.y-c.sprite.y;c.sprite.direction=wrapDir(90-Math.atan2(dy,dx)/DEG);}}});
+def('motion_gotoxy',{cat:'motion',shape:'stack',spec:['go to x: ',N('X',0),' y: ',N('Y',0)],
+  *run(c,b){c.sprite.x=c.arg(b,'X');c.sprite.y=c.arg(b,'Y');}});
+def('motion_goto',{cat:'motion',shape:'stack',spec:['go to ',M('TO','_random_',()=>spriteMenu(true))],
+  *run(c,b){const t=targetPoint(c,c.field(b,'TO'));if(t){c.sprite.x=t.x;c.sprite.y=t.y;}}});
+def('motion_glide',{cat:'motion',shape:'stack',spec:['glide ',N('SECS',1),' secs to x: ',N('X',0),' y: ',N('Y',0)],
+  *run(c,b){const s=c.sprite,secs=c.arg(b,'SECS'),tx=c.arg(b,'X'),ty=c.arg(b,'Y');const sx=s.x,sy=s.y,t0=c.now();
+    if(secs<=0){s.x=tx;s.y=ty;return;} let p=0;while(p<1){p=(c.now()-t0)/(secs*1000);p=clamp(p,0,1);s.x=sx+(tx-sx)*p;s.y=sy+(ty-sy)*p;if(p<1)yield;}}});
+def('motion_changexby',{cat:'motion',shape:'stack',spec:['change x by ',N('DX',10)],*run(c,b){c.sprite.x+=c.arg(b,'DX');}});
+def('motion_setx',{cat:'motion',shape:'stack',spec:['set x to ',N('X',0)],*run(c,b){c.sprite.x=c.arg(b,'X');}});
+def('motion_changeyby',{cat:'motion',shape:'stack',spec:['change y by ',N('DY',10)],*run(c,b){c.sprite.y+=c.arg(b,'DY');}});
+def('motion_sety',{cat:'motion',shape:'stack',spec:['set y to ',N('Y',0)],*run(c,b){c.sprite.y=c.arg(b,'Y');}});
+def('motion_ifonedge',{cat:'motion',shape:'stack',spec:['if on edge, bounce'],*run(c,b){bounceEdge(c.sprite);}});
+def('motion_setrotationstyle',{cat:'motion',shape:'stack',spec:['set rotation style ',M('STYLE','left-right',()=>['left-right','all around',"don't rotate"])],
+  *run(c,b){c.sprite.rotationStyle=c.field(b,'STYLE');}});
+def('motion_xposition',{cat:'motion',shape:'reporter',spec:['x position'],get:c=>round2(c.sprite.x)});
+def('motion_yposition',{cat:'motion',shape:'reporter',spec:['y position'],get:c=>round2(c.sprite.y)});
+def('motion_direction',{cat:'motion',shape:'reporter',spec:['direction'],get:c=>round2(c.sprite.direction)});
+
+/* ---- LOOKS ---- */
+def('looks_sayforsecs',{cat:'looks',shape:'stack',spec:['say ',T('MSG','Hello!'),' for ',N('SECS',2),' seconds'],
+  *run(c,b){c.sprite.bubble={type:'say',text:String(c.arg(b,'MSG'))};const t=c.now()+c.arg(b,'SECS')*1000;while(c.now()<t)yield;if(c.sprite.bubble&&c.sprite.bubble.text===String(c.arg(b,'MSG')))c.sprite.bubble=null;}});
+def('looks_say',{cat:'looks',shape:'stack',spec:['say ',T('MSG','Hello!')],*run(c,b){const t=String(c.arg(b,'MSG'));c.sprite.bubble=t===''?null:{type:'say',text:t};}});
+def('looks_thinkforsecs',{cat:'looks',shape:'stack',spec:['think ',T('MSG','Hmm…'),' for ',N('SECS',2),' seconds'],
+  *run(c,b){c.sprite.bubble={type:'think',text:String(c.arg(b,'MSG'))};const t=c.now()+c.arg(b,'SECS')*1000;while(c.now()<t)yield;c.sprite.bubble=null;}});
+def('looks_think',{cat:'looks',shape:'stack',spec:['think ',T('MSG','Hmm…')],*run(c,b){const t=String(c.arg(b,'MSG'));c.sprite.bubble=t===''?null:{type:'think',text:t};}});
+def('looks_switchcostume',{cat:'looks',shape:'stack',spec:['switch costume to ',M('COST','',c=>costumeMenu(c))],
+  *run(c,b){setCostume(c.sprite,c.field(b,'COST'));}});
+def('looks_nextcostume',{cat:'looks',shape:'stack',spec:['next costume'],*run(c,b){c.sprite.costume=(c.sprite.costume+1)%c.sprite.costumes.length;}});
+def('looks_switchbackdrop',{cat:'looks',shape:'stack',spec:['switch backdrop to ',M('BD','',()=>backdropMenu())],
+  *run(c,b){switchBackdrop(c,c.field(b,'BD'));}});
+def('looks_nextbackdrop',{cat:'looks',shape:'stack',spec:['next backdrop'],*run(c){const st=PROJ.stage;st.costume=(st.costume+1)%st.costumes.length;fireBackdrop(c,st.costumes[st.costume].name);}});
+def('looks_changesize',{cat:'looks',shape:'stack',spec:['change size by ',N('DS',10)],*run(c,b){c.sprite.size=clamp(c.sprite.size+c.arg(b,'DS'),5,400);}});
+def('looks_setsize',{cat:'looks',shape:'stack',spec:['set size to ',N('SZ',100),' %'],*run(c,b){c.sprite.size=clamp(c.arg(b,'SZ'),5,400);}});
+def('looks_changeeffect',{cat:'looks',shape:'stack',spec:['change ',M('EF','ghost',()=>['color','ghost','brightness','fisheye','whirl','pixelate']),' effect by ',N('V',25)],
+  *run(c,b){const e=c.field(b,'EF');c.sprite.effects[e]=(c.sprite.effects[e]||0)+c.arg(b,'V');}});
+def('looks_seteffect',{cat:'looks',shape:'stack',spec:['set ',M('EF','ghost',()=>['color','ghost','brightness','fisheye','whirl','pixelate']),' effect to ',N('V',0)],
+  *run(c,b){c.sprite.effects[c.field(b,'EF')]=c.arg(b,'V');}});
+def('looks_cleareffects',{cat:'looks',shape:'stack',spec:['clear graphic effects'],*run(c){c.sprite.effects={};}});
+def('looks_show',{cat:'looks',shape:'stack',spec:['show'],*run(c){c.sprite.visible=true;}});
+def('looks_hide',{cat:'looks',shape:'stack',spec:['hide'],*run(c){c.sprite.visible=false;}});
+def('looks_gotofront',{cat:'looks',shape:'stack',spec:['go to ',M('L','front',()=>['front','back']),' layer'],
+  *run(c,b){moveLayer(c.sprite,c.field(b,'L')==='front'?'front':'back');}});
+def('looks_changelayers',{cat:'looks',shape:'stack',spec:['go ',M('D','forward',()=>['forward','backward']),' ',N('N',1),' layers'],
+  *run(c,b){moveLayer(c.sprite,c.field(b,'D'),c.arg(b,'N'));}});
+def('looks_costumenumber',{cat:'looks',shape:'reporter',spec:['costume ',M('T','number',()=>['number','name'])],
+  get:(c,b)=>c.field(b,'T')==='name'?c.sprite.costumes[c.sprite.costume].name:c.sprite.costume+1});
+def('looks_size',{cat:'looks',shape:'reporter',spec:['size'],get:c=>round2(c.sprite.size)});
+def('looks_backdropnumber',{cat:'looks',shape:'reporter',spec:['backdrop ',M('T','number',()=>['number','name'])],
+  get:(c,b)=>c.field(b,'T')==='name'?PROJ.stage.costumes[PROJ.stage.costume].name:PROJ.stage.costume+1});
+
+/* ---- SOUND ---- */
+def('sound_play',{cat:'sound',shape:'stack',spec:['start sound ',M('SND','',c=>soundMenu(c))],*run(c,b){playSound(c.sprite,c.field(b,'SND'),false);}});
+def('sound_playuntildone',{cat:'sound',shape:'stack',spec:['play sound ',M('SND','',c=>soundMenu(c)),' until done'],
+  *run(c,b){const dur=playSound(c.sprite,c.field(b,'SND'),true);const t=c.now()+dur;while(c.now()<t)yield;}});
+def('sound_stopall',{cat:'sound',shape:'stack',spec:['stop all sounds'],*run(){stopAllSounds();}});
+def('sound_changevolby',{cat:'sound',shape:'stack',spec:['change volume by ',N('V',-10)],*run(c,b){c.sprite.volume=clamp(c.sprite.volume+c.arg(b,'V'),0,100);}});
+def('sound_setvol',{cat:'sound',shape:'stack',spec:['set volume to ',N('V',100),' %'],*run(c,b){c.sprite.volume=clamp(c.arg(b,'V'),0,100);}});
+def('sound_volume',{cat:'sound',shape:'reporter',spec:['volume'],get:c=>c.sprite.volume});
+
+/* ---- EVENTS ---- */
+def('event_whenflagclicked',{cat:'events',shape:'hat',spec:['when ⚑ clicked'],hat:'flag'});
+def('event_whenkeypressed',{cat:'events',shape:'hat',spec:['when ',M('KEY','space',()=>KEY_MENU),' key pressed'],hat:'key'});
+def('event_whenthisspriteclicked',{cat:'events',shape:'hat',spec:['when this sprite clicked'],hat:'click'});
+def('event_whenstageclicked',{cat:'events',shape:'hat',spec:['when stage clicked'],hat:'stageclick'});
+def('event_whenbackdropswitches',{cat:'events',shape:'hat',spec:['when backdrop switches to ',M('BD','',()=>backdropMenu())],hat:'backdrop'});
+def('event_whenbroadcast',{cat:'events',shape:'hat',spec:['when I receive ',M('MSG','message1',()=>msgMenu())],hat:'broadcast'});
+def('event_broadcast',{cat:'events',shape:'stack',spec:['broadcast ',M('MSG','message1',()=>msgMenu())],*run(c,b){c.broadcast(c.field(b,'MSG'));}});
+def('event_broadcastwait',{cat:'events',shape:'stack',spec:['broadcast ',M('MSG','message1',()=>msgMenu()),' and wait'],
+  *run(c,b){const threads=c.broadcast(c.field(b,'MSG'));while(threads.some(t=>!t.done))yield;}});
+
+/* ---- CONTROL ---- */
+def('control_wait',{cat:'control',shape:'stack',spec:['wait ',N('SECS',1),' seconds'],
+  *run(c,b){const t=c.now()+c.arg(b,'SECS')*1000;while(c.now()<t)yield;}});
+def('control_repeat',{cat:'control',shape:'c',spec:['repeat ',N('TIMES',10),S()],
+  *run(c,b){const n=Math.round(c.arg(b,'TIMES'));for(let i=0;i<n;i++){yield* c.runStack(b.inputs.SUBSTACK||[]);yield;}}});
+def('control_forever',{cat:'control',shape:'c',cap:true,spec:['forever',S()],
+  *run(c,b){while(true){yield* c.runStack(b.inputs.SUBSTACK||[]);yield;}}});
+def('control_if',{cat:'control',shape:'c',spec:['if ',B('COND'),' then',S()],
+  *run(c,b){if(truthy(c.arg(b,'COND')))yield* c.runStack(b.inputs.SUBSTACK||[]);}});
+def('control_if_else',{cat:'control',shape:'c2',spec:['if ',B('COND'),' then',S('SUBSTACK'),'else',S('SUBSTACK2')],
+  *run(c,b){if(truthy(c.arg(b,'COND')))yield* c.runStack(b.inputs.SUBSTACK||[]);else yield* c.runStack(b.inputs.SUBSTACK2||[]);}});
+def('control_wait_until',{cat:'control',shape:'stack',spec:['wait until ',B('COND')],*run(c,b){while(!truthy(c.arg(b,'COND')))yield;}});
+def('control_repeat_until',{cat:'control',shape:'c',spec:['repeat until ',B('COND'),S()],
+  *run(c,b){while(!truthy(c.arg(b,'COND'))){yield* c.runStack(b.inputs.SUBSTACK||[]);yield;}}});
+def('control_stop',{cat:'control',shape:'cap',spec:['stop ',M('OPT','all',()=>['all','this script','other scripts in sprite'])],
+  *run(c,b){const o=c.field(b,'OPT');if(o==='all')c.stopAll();else if(o==='this script')c.stopThread();else c.stopOthers();}});
+def('control_start_as_clone',{cat:'control',shape:'hat',spec:['when I start as a clone'],hat:'clone'});
+def('control_create_clone',{cat:'control',shape:'stack',spec:['create clone of ',M('OF','_myself_',()=>spriteMenu(false,true))],
+  *run(c,b){createClone(c,c.field(b,'OF'));}});
+def('control_delete_clone',{cat:'control',shape:'cap',spec:['delete this clone'],*run(c){if(c.sprite.isClone){deleteClone(c.sprite);c.stopThread();}}});
+
+/* ---- SENSING ---- */
+def('sensing_touching',{cat:'sensing',shape:'bool',spec:['touching ',M('OBJ','_edge_',()=>spriteMenu(true,false,true)),' ?'],
+  get:(c,b)=>isTouching(c.sprite,c.field(b,'OBJ'))});
+def('sensing_keypressed',{cat:'sensing',shape:'bool',spec:['key ',M('KEY','space',()=>KEY_MENU),' pressed?'],
+  get:(c,b)=>!!IO.keys[normKey(c.field(b,'KEY'))]});
+def('sensing_mousedown',{cat:'sensing',shape:'bool',spec:['mouse down?'],get:()=>IO.mouseDown});
+def('sensing_mousex',{cat:'sensing',shape:'reporter',spec:['mouse x'],get:()=>round2(IO.mouseX)});
+def('sensing_mousey',{cat:'sensing',shape:'reporter',spec:['mouse y'],get:()=>round2(IO.mouseY)});
+def('sensing_distanceto',{cat:'sensing',shape:'reporter',spec:['distance to ',M('TO','_mouse_',()=>spriteMenu(true))],
+  get:(c,b)=>{const t=targetPoint(c,c.field(b,'TO'));return t?round2(Math.hypot(t.x-c.sprite.x,t.y-c.sprite.y)):0;}});
+def('sensing_askandwait',{cat:'sensing',shape:'stack',spec:['ask ',T('Q','What is your name?'),' and wait'],
+  *run(c,b){yield* askAndWait(c,String(c.arg(b,'Q')));}});
+def('sensing_answer',{cat:'sensing',shape:'reporter',spec:['answer'],get:()=>IO.answer});
+def('sensing_timer',{cat:'sensing',shape:'reporter',spec:['timer'],get:c=>round2((c.now()-IO.timerStart)/1000)});
+def('sensing_resettimer',{cat:'sensing',shape:'stack',spec:['reset timer'],*run(c){IO.timerStart=c.now();}});
+def('sensing_of',{cat:'sensing',shape:'reporter',spec:[M('PROP','x position',()=>['x position','y position','direction','costume #','size','backdrop #','volume']),' of ',M('OBJ','Stage',()=>spriteMenu(false,false,false,true))],
+  get:(c,b)=>propertyOf(c.field(b,'PROP'),c.field(b,'OBJ'))});
+def('sensing_current',{cat:'sensing',shape:'reporter',spec:['current ',M('T','year',()=>['year','month','date','day of week','hour','minute','second'])],
+  get:(c,b)=>currentDate(c.field(b,'T'))});
+
+/* ---- OPERATORS ---- */
+def('operator_add',{cat:'operators',shape:'reporter',spec:[N('A',''),' + ',N('B','')],get:(c,b)=>toNum(c.arg(b,'A'))+toNum(c.arg(b,'B'))});
+def('operator_subtract',{cat:'operators',shape:'reporter',spec:[N('A',''),' − ',N('B','')],get:(c,b)=>toNum(c.arg(b,'A'))-toNum(c.arg(b,'B'))});
+def('operator_multiply',{cat:'operators',shape:'reporter',spec:[N('A',''),' × ',N('B','')],get:(c,b)=>toNum(c.arg(b,'A'))*toNum(c.arg(b,'B'))});
+def('operator_divide',{cat:'operators',shape:'reporter',spec:[N('A',''),' / ',N('B','')],get:(c,b)=>toNum(c.arg(b,'A'))/toNum(c.arg(b,'B'))});
+def('operator_random',{cat:'operators',shape:'reporter',spec:['pick random ',N('FROM',1),' to ',N('TO',10)],
+  get:(c,b)=>{let lo=toNum(c.arg(b,'FROM')),hi=toNum(c.arg(b,'TO'));if(lo>hi)[lo,hi]=[hi,lo];const int=Number.isInteger(lo)&&Number.isInteger(hi);return int?Math.floor(Math.random()*(hi-lo+1))+lo:round2(Math.random()*(hi-lo)+lo);}});
+def('operator_gt',{cat:'operators',shape:'bool',spec:[N('A',''),' > ',N('B','')],get:(c,b)=>compare(c.arg(b,'A'),c.arg(b,'B'))>0});
+def('operator_lt',{cat:'operators',shape:'bool',spec:[N('A',''),' < ',N('B','')],get:(c,b)=>compare(c.arg(b,'A'),c.arg(b,'B'))<0});
+def('operator_equals',{cat:'operators',shape:'bool',spec:[N('A',''),' = ',N('B','')],get:(c,b)=>compare(c.arg(b,'A'),c.arg(b,'B'))===0});
+def('operator_and',{cat:'operators',shape:'bool',spec:[B('A'),' and ',B('B')],get:(c,b)=>truthy(c.arg(b,'A'))&&truthy(c.arg(b,'B'))});
+def('operator_or',{cat:'operators',shape:'bool',spec:[B('A'),' or ',B('B')],get:(c,b)=>truthy(c.arg(b,'A'))||truthy(c.arg(b,'B'))});
+def('operator_not',{cat:'operators',shape:'bool',spec:['not ',B('A')],get:(c,b)=>!truthy(c.arg(b,'A'))});
+def('operator_join',{cat:'operators',shape:'reporter',spec:['join ',T('A','apple '),T('B','banana')],get:(c,b)=>String(c.arg(b,'A'))+String(c.arg(b,'B'))});
+def('operator_letter_of',{cat:'operators',shape:'reporter',spec:['letter ',N('N',1),' of ',T('S','apple')],get:(c,b)=>String(c.arg(b,'S')).charAt(toNum(c.arg(b,'N'))-1)});
+def('operator_length',{cat:'operators',shape:'reporter',spec:['length of ',T('S','apple')],get:(c,b)=>String(c.arg(b,'S')).length});
+def('operator_contains',{cat:'operators',shape:'bool',spec:[T('A','apple'),' contains ',T('B','a'),' ?'],get:(c,b)=>String(c.arg(b,'A')).toLowerCase().includes(String(c.arg(b,'B')).toLowerCase())});
+def('operator_mod',{cat:'operators',shape:'reporter',spec:[N('A',''),' mod ',N('B','')],get:(c,b)=>{const a=toNum(c.arg(b,'A')),m=toNum(c.arg(b,'B'));return ((a%m)+m)%m;}});
+def('operator_round',{cat:'operators',shape:'reporter',spec:['round ',N('A','')],get:(c,b)=>Math.round(toNum(c.arg(b,'A')))});
+def('operator_mathop',{cat:'operators',shape:'reporter',spec:[M('OP','sqrt',()=>['abs','floor','ceiling','sqrt','sin','cos','tan','asin','acos','atan','ln','log','e ^','10 ^']),' of ',N('A',9)],
+  get:(c,b)=>mathop(c.field(b,'OP'),toNum(c.arg(b,'A')))});
+
+/* run/get resolved dynamically for variables/lists/custom below */
+
+/* ---------------------------------------------------------------------------
+   HELPERS used by block defs
+---------------------------------------------------------------------------*/
+function wrapDir(d){d=((d+180)%360+360)%360-180;return d;}
+function round2(n){return Math.round(n*100)/100;}
+function truthy(v){return v===true||v==='true'||(typeof v==='number'&&v!==0);}
+function compare(a,b){const na=parseFloat(a),nb=parseFloat(b);
+  if(!isNaN(na)&&!isNaN(nb)&&String(a).trim()!==''&&String(b).trim()!=='')return na<nb?-1:na>nb?1:0;
+  const sa=String(a).toLowerCase(),sb=String(b).toLowerCase();return sa<sb?-1:sa>sb?1:0;}
+function mathop(op,a){switch(op){case'abs':return Math.abs(a);case'floor':return Math.floor(a);case'ceiling':return Math.ceil(a);
+  case'sqrt':return round2(Math.sqrt(a));case'sin':return round2(Math.sin(a*DEG));case'cos':return round2(Math.cos(a*DEG));
+  case'tan':return round2(Math.tan(a*DEG));case'asin':return round2(Math.asin(a)/DEG);case'acos':return round2(Math.acos(a)/DEG);
+  case'atan':return round2(Math.atan(a)/DEG);case'ln':return round2(Math.log(a));case'log':return round2(Math.log10(a));
+  case'e ^':return round2(Math.exp(a));case'10 ^':return round2(Math.pow(10,a));}return 0;}
+function bounceEdge(s){const w=240,h=180;let d=s.direction;const rad=(90-d)*DEG;let dx=Math.cos(rad),dy=Math.sin(rad);
+  let hit=false;if(s.x<-w+5&&dx<0){dx=-dx;hit=true;}if(s.x>w-5&&dx>0){dx=-dx;hit=true;}
+  if(s.y>h-5&&dy>0){dy=-dy;hit=true;}if(s.y<-h+5&&dy<0){dy=-dy;hit=true;}
+  if(hit){s.direction=wrapDir(90-Math.atan2(dy,dx)/DEG);s.x=clamp(s.x,-w+5,w-5);s.y=clamp(s.y,-h+5,h-5);}}
+function moveLayer(s,dir,n){const L=PROJ.sprites;const i=L.indexOf(s);if(i<0)return;L.splice(i,1);
+  if(dir==='front')L.push(s);else if(dir==='back')L.unshift(s);
+  else if(dir==='forward')L.splice(Math.min(L.length,i+n),0,s);else L.splice(Math.max(0,i-n),0,s);}
+function spriteMenu(withMouse,withMyself,withEdge,withStage){const a=[];if(withStage)a.push('Stage');if(withEdge)a.push('_edge_');if(withMouse)a.push('_mouse_');if(withMyself)a.push('_myself_');if(arguments.length===1&&withMouse)a.push('_random_');PROJ.sprites.forEach(s=>a.push(s.name));return a;}
+function costumeMenu(c){const s=(c&&c.sprite)||currentSprite();return s.costumes.map(x=>x.name);}
+function soundMenu(c){const s=(c&&c.sprite)||currentSprite();return s.sounds.length?s.sounds.map(x=>x.name):['pop'];}
+function backdropMenu(){return PROJ.stage.costumes.map(x=>x.name).concat(['next backdrop','previous backdrop','random backdrop']);}
+function msgMenu(){return PROJ.messages.slice();}
+const KEY_MENU=['space','up arrow','down arrow','right arrow','left arrow','any','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9'];
+function normKey(k){k=String(k).toLowerCase();if(k==='space')return ' ';if(k==='up arrow')return 'arrowup';if(k==='down arrow')return 'arrowdown';if(k==='left arrow')return 'arrowleft';if(k==='right arrow')return 'arrowright';return k;}
+function targetPoint(c,f){if(f==='_mouse_')return{x:IO.mouseX,y:IO.mouseY};if(f==='_random_')return{x:rand(-240,240),y:rand(-180,180)};const s=PROJ.sprites.find(s=>s.name===f&&!s.isClone)||PROJ.sprites.find(s=>s.name===f);return s?{x:s.x,y:s.y}:null;}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function setCostume(s,name){const i=s.costumes.findIndex(x=>x.name===name);if(i>=0)s.costume=i;else{const n=parseInt(name);if(!isNaN(n))s.costume=clamp(n-1,0,s.costumes.length-1);}}
+function switchBackdrop(c,name){const st=PROJ.stage;if(name==='next backdrop')st.costume=(st.costume+1)%st.costumes.length;
+  else if(name==='previous backdrop')st.costume=(st.costume-1+st.costumes.length)%st.costumes.length;
+  else if(name==='random backdrop')st.costume=rand(0,st.costumes.length-1);
+  else{const i=st.costumes.findIndex(x=>x.name===name);if(i>=0)st.costume=i;}fireBackdrop(c,st.costumes[st.costume].name);}
+function fireBackdrop(c,name){startHats('backdrop',b=>fieldRaw(b,'BD')===name);}
+function propertyOf(prop,obj){const s=obj==='Stage'?PROJ.stage:PROJ.sprites.find(x=>x.name===obj);if(!s)return 0;
+  switch(prop){case'x position':return round2(s.x||0);case'y position':return round2(s.y||0);case'direction':return round2(s.direction||90);
+  case'costume #':case'backdrop #':return (s.costume||0)+1;case'size':return s.size||100;case'volume':return s.volume||100;}return 0;}
+function currentDate(t){const d=new Date();switch(t){case'year':return d.getFullYear();case'month':return d.getMonth()+1;case'date':return d.getDate();
+  case'day of week':return d.getDay()+1;case'hour':return d.getHours();case'minute':return d.getMinutes();case'second':return d.getSeconds();}return 0;}
+function isTouching(s,obj){if(obj==='_edge_')return s.x<=-235||s.x>=235||s.y<=-175||s.y>=175;
+  if(obj==='_mouse_')return Math.hypot(IO.mouseX-s.x,IO.mouseY-s.y)<(s.size/100*22);
+  const others=PROJ.sprites.filter(o=>o.name===obj&&o!==s&&o.visible);const r1=s.size/100*22;
+  return others.some(o=>Math.hypot(o.x-s.x,o.y-s.y)<(r1+o.size/100*22));}
+
+/* ---------------------------------------------------------------------------
+   PROJECT DATA MODEL
+---------------------------------------------------------------------------*/
+const EMOJI=['🐶','🐱','🦊','🐸','🐼','🦄','🐢','🐙','🦋','🚀','⭐','🍎','⚽','🎈','👾','🤖','🐝','🐧','🦉','🐬'];
+function newSprite(name,emoji,costumes){return{id:uid('sp'),name,x:0,y:0,direction:90,size:100,visible:true,rotationStyle:'all around',
+  costumes:costumes||[{name:'costume1',emoji:emoji||'🐶'},{name:'costume2',emoji:emoji||'🐶'}],costume:0,
+  sounds:[{name:'pop',freq:440,dur:120}],volume:100,effects:{},scripts:[],variables:[],lists:[],isClone:false};}
+function makeDog(){return newSprite('Rex','🐶',[{name:'dog-a',render:'dog',pose:0},{name:'dog-b',render:'dog',pose:1}]);}
+function newStage(){return{id:'stage',name:'Stage',isStage:true,costumes:[{name:'backdrop1',color:'#ffffff'},{name:'blue',color:'#8ec7ff'},{name:'night',color:'#1b1740'}],costume:0,scripts:[],variables:[],lists:[],volume:100,effects:{}};}
+function blankProject(){const dog=makeDog();return{name:'Untitled',sprites:[dog],stage:newStage(),messages:['message1'],currentSprite:dog.id,customBlocks:[]};}
+let PROJ=blankProject();
+function currentSprite(){return PROJ.sprites.find(s=>s.id===PROJ.currentSprite&&!s.isClone)||PROJ.sprites.find(s=>!s.isClone)||PROJ.sprites[0];}
+function editingTarget(){return PROJ.currentSprite==='stage'?PROJ.stage:currentSprite();}
+
+/* variable/list helpers (scope: sprite-local then global on stage) */
+function allVars(sp){return [...PROJ.stage.variables,...(sp&&sp.variables||[])];}
+function findVar(sp,name){return (sp&&sp.variables.find(v=>v.name===name))||PROJ.stage.variables.find(v=>v.name===name);}
+function findList(sp,name){return (sp&&sp.lists.find(v=>v.name===name))||PROJ.stage.lists.find(v=>v.name===name);}
+function allLists(sp){return [...PROJ.stage.lists,...(sp&&sp.lists||[])];}
+
+/* variable & list blocks are generated per-project; base defs: */
+function varReporterGet(c,b){const v=findVar(c.sprite,fieldRaw(b,'VAR'));return v?v.value:0;}
+DEFS['data_variable']={cat:'variables',shape:'reporter',dynamic:true,get:varReporterGet};
+DEFS['data_setvariableto']={cat:'variables',shape:'stack',spec:['set ',M('VAR','',c=>allVars(c&&c.sprite).map(v=>v.name)),' to ',T('VAL','0')],
+  *run(c,b){const v=findVar(c.sprite,c.field(b,'VAR'));if(v)v.value=c.arg(b,'VAL');}};
+DEFS['data_changevariableby']={cat:'variables',shape:'stack',spec:['change ',M('VAR','',c=>allVars(c&&c.sprite).map(v=>v.name)),' by ',N('VAL',1)],
+  *run(c,b){const v=findVar(c.sprite,c.field(b,'VAR'));if(v)v.value=toNum(v.value)+toNum(c.arg(b,'VAL'));}};
+DEFS['data_showvariable']={cat:'variables',shape:'stack',spec:['show variable ',M('VAR','',c=>allVars(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const v=findVar(c.sprite,c.field(b,'VAR'));if(v)v.visible=true;}};
+DEFS['data_hidevariable']={cat:'variables',shape:'stack',spec:['hide variable ',M('VAR','',c=>allVars(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const v=findVar(c.sprite,c.field(b,'VAR'));if(v)v.visible=false;}};
+/* lists */
+DEFS['data_listcontents']={cat:'lists',shape:'reporter',dynamic:true,get(c,b){const l=findList(c.sprite,fieldRaw(b,'LIST'));return l?l.items.join(' '):'';}};
+DEFS['data_addtolist']={cat:'lists',shape:'stack',spec:['add ',T('ITEM','thing'),' to ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(l)l.items.push(c.arg(b,'ITEM'));}};
+DEFS['data_deleteoflist']={cat:'lists',shape:'stack',spec:['delete ',T('IDX','1'),' of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(!l)return;const raw=c.arg(b,'IDX');if(raw==='all'){l.items=[];return;}const i=listIndex(raw,l);if(i>=0)l.items.splice(i,1);}};
+DEFS['data_deletealloflist']={cat:'lists',shape:'stack',spec:['delete all of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(l)l.items=[];}};
+DEFS['data_insertatlist']={cat:'lists',shape:'stack',spec:['insert ',T('ITEM','thing'),' at ',T('IDX','1'),' of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  *run(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(!l)return;const i=listIndex(c.arg(b,'IDX'),l,true);l.items.splice(i,0,c.arg(b,'ITEM'));}};
+DEFS['data_replaceitem']={cat:'lists',shape:'stack',spec:['replace item ',T('IDX','1'),' of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name)),' with ',T('ITEM','thing')],
+  *run(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(!l)return;const i=listIndex(c.arg(b,'IDX'),l);if(i>=0)l.items[i]=c.arg(b,'ITEM');}};
+DEFS['data_itemoflist']={cat:'lists',shape:'reporter',spec:['item ',T('IDX','1'),' of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  get(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(!l)return'';const i=listIndex(c.arg(b,'IDX'),l);return i>=0?l.items[i]:'';}};
+DEFS['data_itemnumoflist']={cat:'lists',shape:'reporter',spec:['item # of ',T('ITEM','thing'),' in ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  get(c,b){const l=findList(c.sprite,c.field(b,'LIST'));if(!l)return 0;const i=l.items.findIndex(x=>String(x)===String(c.arg(b,'ITEM')));return i+1;}};
+DEFS['data_lengthoflist']={cat:'lists',shape:'reporter',spec:['length of ',M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name))],
+  get(c,b){const l=findList(c.sprite,c.field(b,'LIST'));return l?l.items.length:0;}};
+DEFS['data_listcontainsitem']={cat:'lists',shape:'bool',spec:[M('LIST','',c=>allLists(c&&c.sprite).map(v=>v.name)),' contains ',T('ITEM','thing'),' ?'],
+  get(c,b){const l=findList(c.sprite,c.field(b,'LIST'));return l?l.items.some(x=>String(x)===String(c.arg(b,'ITEM'))):false;}};
+function listIndex(raw,l,forInsert){if(raw==='last')return forInsert?l.items.length:l.items.length-1;if(raw==='random'||raw==='any')return rand(0,Math.max(0,l.items.length-1));const n=toNum(raw);return n-1;}
+
+/* custom blocks (My Blocks) */
+DEFS['procedures_definition']={cat:'myblocks',shape:'hat',dynamic:true};
+DEFS['procedures_call']={cat:'myblocks',shape:'stack',dynamic:true,
+  *run(c,b){const def=PROJ.customBlocks.find(d=>d.proccode===b.proccode);if(!def)return;
+    const args={};(def.args||[]).forEach(a=>{args[a.name]=a.type==='bool'?truthy(c.arg(b,a.name)):c.arg(b,a.name);});
+    const hat=findCustomHat(c.sprite,def.proccode);if(hat){const frame={args};c.thread.frames.push(frame);yield* c.runStack(hat.inputs.SUBSTACK||[]);c.thread.frames.pop();}}};
+DEFS['argument_reporter_string_number']={cat:'myblocks',shape:'reporter',dynamic:true,get(c,b){const f=c.thread.frames[c.thread.frames.length-1];return f?(f.args[b.argName]??''):'';}};
+DEFS['argument_reporter_boolean']={cat:'myblocks',shape:'bool',dynamic:true,get(c,b){const f=c.thread.frames[c.thread.frames.length-1];return f?truthy(f.args[b.argName]):false;}};
+function findCustomHat(sp,proccode){const scan=t=>t.scripts.map(s=>s.stack[0]).find(b=>b&&b.op==='procedures_definition'&&b.proccode===proccode);
+  return scan(sp)||scan(PROJ.stage);}
+
+/* ---------------------------------------------------------------------------
+   BLOCK CONSTRUCTION & FIELD ACCESS
+---------------------------------------------------------------------------*/
+function makeBlock(op,over){const d=DEFS[op];const blk={id:uid(),op,inputs:{},fields:{}};
+  const spec=specOf(op,over);spec.forEach(p=>{if(typeof p==='object'){
+    if(p.t==='stack')blk.inputs[p.i]=[];
+    else if(p.t==='bool')blk.inputs[p.i]=null;
+    else if(p.t==='menu')blk.fields[p.i]=(typeof p.d==='function'?p.d():p.d)||(menuOptions(op,p.i,{sprite:currentSprite()})[0]||'');
+    else blk.inputs[p.i]=p.d;
+  }});
+  if(over)Object.assign(blk,over);
+  return blk;}
+function specOf(op,blk){const d=DEFS[op];if(d.spec)return d.spec;
+  if(op==='data_variable')return [{i:'VAR',t:'menu',d:blk&&blk.fields?blk.fields.VAR:''}];
+  if(op==='data_listcontents')return [{i:'LIST',t:'menu',d:''}];
+  if(op==='procedures_definition')return dynDefineSpec(blk);
+  if(op==='procedures_call')return dynCallSpec(blk);
+  if(op==='argument_reporter_string_number'||op==='argument_reporter_boolean')return [blk&&blk.argName||'arg'];
+  return d.spec||[];}
+function fieldRaw(b,name){return b.fields[name];}
+function menuOptions(op,name,ctx){const spec=specOf(op,{});const p=spec.find(x=>x&&x.i===name);if(p&&p.m)return p.m(ctx);
+  if(op==='data_variable')return allVars(ctx&&ctx.sprite).map(v=>v.name);
+  return [];}
+
+/* ---------------------------------------------------------------------------
+   RUNTIME — cooperative generator threads
+---------------------------------------------------------------------------*/
+const IO={keys:{},mouseX:0,mouseY:0,mouseDown:false,answer:'',timerStart:performance.now()};
+let THREADS=[],running=false,rafId=null,askQueue=null;
+const NOW=()=>performance.now();
+
+function makeCtx(sprite,thread){
+  const c={sprite,thread,now:NOW,frames:thread.frames,
+    arg(b,name){return evalInput(b.inputs[name],sprite,thread);},
+    field(b,name){return b.fields[name];},
+    runStack(stack){return runStack(stack,sprite,thread);},
+    stopThread(){thread.done=true;thread.gen=null;throw STOP_THREAD;},
+    stopAll(){stopAllThreads();throw STOP_THREAD;},
+    stopOthers(){THREADS.forEach(t=>{if(t!==thread&&t.sprite===sprite){t.done=true;t.gen=null;}});},
+    broadcast(msg){return startHats('broadcast',b=>fieldRaw(b,'MSG')===msg);}
+  };
+  return c;}
+const STOP_THREAD={stop:true};
+
+function* runStack(stack,sprite,thread){
+  if(!stack)return;
+  for(let i=0;i<stack.length;i++){const b=stack[i];const d=DEFS[b.op];if(!d||!d.run)continue;
+    const c=makeCtx(sprite,thread);
+    yield* d.run(c,b);}
+}
+function evalInput(inp,sprite,thread){
+  if(inp==null)return false;
+  if(typeof inp==='object'&&inp.op){const d=DEFS[inp.op];if(d&&d.get){const c=makeCtx(sprite,thread);return d.get(c,inp);}return 0;}
+  return inp; // literal
+}
+
+function startThread(sprite,stack,restartKey){
+  if(restartKey){THREADS=THREADS.filter(t=>!(t.sprite===sprite&&t.restartKey===restartKey&&!t.done));}
+  const thread={sprite,frames:[],done:false,restartKey};
+  thread.gen=(function*(){yield* runStack(stack,sprite,thread);})();
+  THREADS.push(thread);
+  return thread;
+}
+function startHats(hatKind,match){
+  const started=[];
+  const targets=[PROJ.stage,...PROJ.sprites];
+  targets.forEach(sp=>{
+    (sp.scripts||[]).forEach(scr=>{const hat=scr.stack[0];if(!hat)return;const d=DEFS[hat.op];
+      if(d&&d.hat===hatKind&&(!match||match(hat))){
+        started.push(startThread(sp,scr.stack.slice(1),scr.id));
+      }});
+  });
+  return started;
+}
+function stopAllThreads(){THREADS.forEach(t=>{t.done=true;t.gen=null;});THREADS=[];}
+function greenFlag(){IO.timerStart=NOW();PROJ.sprites=PROJ.sprites.filter(s=>!s.isClone);
+  stopAllThreads();ensureLoop();startHats('flag');$('#btnFlag').classList.add('active');}
+function ensureLoop(){if(!running){running=true;loop();}}
+function stopEverything(){stopAllThreads();PROJ.sprites=PROJ.sprites.filter(s=>!s.isClone);PROJ.sprites.forEach(s=>s.bubble=null);
+  $('#btnFlag').classList.remove('active');closeAsk();}
+function loop(){
+  const budgetEnd=NOW()+22;
+  let progressed=true;
+  // Run each thread until it yields; multiple passes within frame budget for non-loopers
+  for(const t of [...THREADS]){
+    if(t.done||!t.gen)continue;
+    try{ const r=t.gen.next(); if(r.done){t.done=true;t.gen=null;} }
+    catch(e){ if(e===STOP_THREAD){/*intentional*/} else {console.error('block error',e);} t.done=true;t.gen=null; }
+  }
+  THREADS=THREADS.filter(t=>!t.done);
+  renderStage();
+  if(THREADS.length===0){ $('#btnFlag').classList.remove('active'); }
+  rafId=requestAnimationFrame(loop);
+}
+/* clones */
+function createClone(c,ofName){const src=ofName==='_myself_'?c.sprite:PROJ.sprites.find(s=>s.name===ofName&&!s.isClone);
+  if(!src)return;const cl=JSON.parse(JSON.stringify(src));cl.id=uid('cl');cl.isClone=true;cl.scripts=src.scripts;// share scripts by ref
+  const idx=PROJ.sprites.indexOf(src);PROJ.sprites.splice(idx+1,0,cl);
+  (cl.scripts||[]).forEach(scr=>{const hat=scr.stack[0];if(hat&&DEFS[hat.op]&&DEFS[hat.op].hat==='clone')startThread(cl,scr.stack.slice(1));});}
+function deleteClone(cl){PROJ.sprites=PROJ.sprites.filter(s=>s!==cl);THREADS.forEach(t=>{if(t.sprite===cl){t.done=true;t.gen=null;}});}
+
+/* ask & answer */
+function askAndWait(c,q){return (function*(){c.sprite.bubble=c.sprite.isStage?null:{type:'say',text:q};
+  const bar=$('#askBar');$('#askInput').value='';bar.classList.add('on');$('#askInput').focus();
+  let answered=false;askQueue={done:v=>{IO.answer=v;answered=true;}};
+  while(!answered)yield; bar.classList.remove('on');if(!c.sprite.isStage)c.sprite.bubble=null;})();}
+function closeAsk(){$('#askBar').classList.remove('on');if(askQueue){askQueue=null;}}
+$('#askOk').onclick=submitAsk;$('#askInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitAsk();});
+function submitAsk(){if(askQueue){askQueue.done($('#askInput').value);askQueue=null;}}
+
+/* sound via WebAudio */
+let AC=null;const activeOsc=[];
+function playSound(sp,name,wait){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+  const snd=(sp.sounds||[]).find(s=>s.name===name)||{freq:440,dur:150};
+  const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=snd.freq||440;o.type='sine';
+  g.gain.value=(sp.volume/100)*0.15;o.connect(g);g.connect(AC.destination);o.start();
+  const dur=(snd.dur||150);o.stop(AC.currentTime+dur/1000);activeOsc.push(o);
+  return dur;}catch(e){return 150;}}
+function stopAllSounds(){activeOsc.forEach(o=>{try{o.stop();}catch(e){}});activeOsc.length=0;}
+
+/* ---------------------------------------------------------------------------
+   STAGE RENDERING (canvas)
+---------------------------------------------------------------------------*/
+const stageCanvas=$('#stage'),SCTX=stageCanvas.getContext('2d');
+function toScreen(x,y){return[240+x,180-y];}
+function renderStage(){
+  const st=PROJ.stage,bd=st.costumes[st.costume];
+  SCTX.save();SCTX.clearRect(0,0,480,360);
+  SCTX.fillStyle=bd.color||'#fff';SCTX.fillRect(0,0,480,360);
+  if(bd.name==='night'){for(let i=0;i<40;i++){SCTX.fillStyle='rgba(255,255,255,'+(0.3+Math.random()*0.5)+')';SCTX.fillRect((i*97)%480,(i*53)%360,2,2);}}
+  // sprites in layer order
+  for(const s of PROJ.sprites){ if(!s.visible)continue; drawSprite(s); }
+  drawMonitors();
+  SCTX.restore();
+}
+/* Original mascot artwork — "Rex", a friendly cartoon dog (Scratch-mascot spirit, drawn from scratch).
+   Centered at (0,0), facing right (+x). pose 0 = stand, pose 1 = walk. */
+const SPRITE_ART={
+  dog(ctx,pose){
+    const body='#f6b04a',dark='#e8952e',cream='#ffe6bd',ink='#2b2320';
+    ctx.lineJoin='round';ctx.lineCap='round';
+    const stride=pose?4:0;
+    // tail
+    ctx.strokeStyle=dark;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-16,2);ctx.quadraticCurveTo(-24,-6,-20,-14);ctx.stroke();
+    // back legs
+    ctx.fillStyle=dark;
+    rleg(ctx,-11+stride,10);rleg(ctx,6-stride,10);
+    // body
+    ctx.fillStyle=body;ctx.strokeStyle=dark;ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(-4,3,15,11,0,0,7);ctx.fill();ctx.stroke();
+    // belly
+    ctx.fillStyle=cream;ctx.beginPath();ctx.ellipse(-4,7,9,6,0,0,7);ctx.fill();
+    // head
+    ctx.fillStyle=body;ctx.strokeStyle=dark;ctx.beginPath();ctx.arc(13,-6,11,0,7);ctx.fill();ctx.stroke();
+    // ear
+    ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(8,-13,4,7,-0.5,0,7);ctx.fill();
+    ctx.beginPath();ctx.ellipse(19,-12,4,6,0.5,0,7);ctx.fill();
+    // snout
+    ctx.fillStyle=cream;ctx.beginPath();ctx.ellipse(20,-3,6,5,0,0,7);ctx.fill();
+    // nose
+    ctx.fillStyle=ink;ctx.beginPath();ctx.arc(24,-4,2.4,0,7);ctx.fill();
+    // eyes
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(12,-8,3,0,7);ctx.arc(19,-8,3,0,7);ctx.fill();
+    ctx.fillStyle=ink;ctx.beginPath();ctx.arc(13,-8,1.5,0,7);ctx.arc(20,-8,1.5,0,7);ctx.fill();
+    // smile
+    ctx.strokeStyle=ink;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(20,0,3,0.1,Math.PI-0.1);ctx.stroke();
+    // front legs
+    ctx.fillStyle=body;rleg(ctx,-9-stride,9);rleg(ctx,9+stride,9);
+    function rleg(c,x,y){c.beginPath();c.roundRect?c.roundRect(x-2.5,y,5,9,2):c.rect(x-2.5,y,5,9);c.fill();}
+  },
+  platform(ctx){ // a wide grassy platform tile (drawn ~120x26, centered)
+    const w=120,h=26;ctx.beginPath();ctx.roundRect?ctx.roundRect(-w/2,-h/2,w,h,7):ctx.rect(-w/2,-h/2,w,h);
+    ctx.fillStyle='#7a5a3a';ctx.fill();
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(-w/2,-h/2,w,10,6):ctx.rect(-w/2,-h/2,w,10);
+    ctx.fillStyle='#5bc16b';ctx.fill();
+  },
+  coin(ctx){ctx.beginPath();ctx.arc(0,0,12,0,7);ctx.fillStyle='#ffd23f';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#e0a500';ctx.stroke();
+    ctx.fillStyle='#e0a500';ctx.font='700 13px Nunito,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('★',0,1);}
+};
+function drawSprite(s){const[px,py]=toScreen(s.x,s.y);const cost=s.costumes[s.costume]||{};
+  const scale=s.size/100;const ghost=clamp((s.effects.ghost||0),0,100);
+  SCTX.save();SCTX.globalAlpha=1-ghost/100;SCTX.translate(px,py);
+  let rot=0;if(s.rotationStyle==='all around')rot=(s.direction-90)*DEG;
+  let flip=1;if(s.rotationStyle==='left-right'){flip=(s.direction<0)?-1:1;}
+  SCTX.rotate(rot);SCTX.scale(scale*flip,scale);
+  if(cost.render&&SPRITE_ART[cost.render]){SPRITE_ART[cost.render](SCTX,cost.pose||0);}
+  else{const fs=34;SCTX.font=fs+'px "Segoe UI Emoji","Apple Color Emoji",sans-serif';
+    SCTX.textAlign='center';SCTX.textBaseline='middle';SCTX.fillText(cost.emoji||'🐶',0,0);}
+  SCTX.restore();
+  if(s.bubble&&s.bubble.text)drawBubble(px,py,scale,s.bubble);
+}
+function drawBubble(px,py,scale,bub){SCTX.save();const pad=7,fs=13;SCTX.font='700 '+fs+'px Nunito,sans-serif';
+  const text=String(bub.text);const lines=wrapText(text,150);const w=Math.max(...lines.map(l=>SCTX.measureText(l).width))+pad*2;
+  const h=lines.length*(fs+3)+pad*2;let bx=px+18*scale,by=py-20*scale-h;bx=clamp(bx,4,480-w-4);by=clamp(by,4,360-h-4);
+  SCTX.fillStyle='#fff';SCTX.strokeStyle='rgba(0,0,0,.15)';SCTX.lineWidth=1;roundRect(bx,by,w,h,10);SCTX.fill();SCTX.stroke();
+  SCTX.fillStyle='#2b2b38';SCTX.textAlign='left';SCTX.textBaseline='top';
+  lines.forEach((l,i)=>SCTX.fillText(l,bx+pad,by+pad+i*(fs+3)));
+  // tail
+  SCTX.beginPath();if(bub.type==='think'){SCTX.arc(bx+10,by+h+6,3,0,7);SCTX.arc(bx+4,by+h+12,2,0,7);SCTX.fillStyle='#fff';SCTX.fill();}
+  else{SCTX.moveTo(bx+12,by+h-2);SCTX.lineTo(bx+8,by+h+12);SCTX.lineTo(bx+26,by+h-2);SCTX.closePath();SCTX.fillStyle='#fff';SCTX.fill();}
+  SCTX.restore();}
+function wrapText(t,max){SCTX.save();SCTX.font='700 13px Nunito,sans-serif';const words=t.split(' ');const lines=[];let cur='';
+  words.forEach(w=>{const test=cur?cur+' '+w:w;if(SCTX.measureText(test).width>max&&cur){lines.push(cur);cur=w;}else cur=test;});
+  if(cur)lines.push(cur);SCTX.restore();return lines.slice(0,6);}
+function roundRect(x,y,w,h,r){SCTX.beginPath();SCTX.moveTo(x+r,y);SCTX.arcTo(x+w,y,x+w,y+h,r);SCTX.arcTo(x+w,y+h,x,y+h,r);SCTX.arcTo(x,y+h,x,y,r);SCTX.arcTo(x,y,x+w,y,r);SCTX.closePath();}
+function drawMonitors(){let my=6;const draw=(name,val,color)=>{SCTX.save();SCTX.font='700 11px Nunito';const label=name+' ';
+  const lw=SCTX.measureText(label).width,vw=SCTX.measureText(String(val)).width+14;const w=lw+vw+14,x=6,y=my;my+=22;
+  SCTX.fillStyle='rgba(255,255,255,.85)';SCTX.strokeStyle='rgba(0,0,0,.1)';roundRect(x,y,w,18,5);SCTX.fill();SCTX.stroke();
+  SCTX.fillStyle='#3a3a48';SCTX.textBaseline='middle';SCTX.textAlign='left';SCTX.fillText(label,x+6,y+9);
+  SCTX.fillStyle=color;roundRect(x+lw+8,y+3,vw,12,4);SCTX.fill();SCTX.fillStyle='#fff';SCTX.textAlign='center';SCTX.fillText(String(val),x+lw+8+vw/2,y+9);SCTX.restore();};
+  PROJ.stage.variables.forEach(v=>{if(v.visible!==false&&v.monitor)draw(v.name,v.value,CAT_COLORS.variables);});
+  const sp=currentSprite();(sp&&sp.variables||[]).forEach(v=>{if(v.visible!==false&&v.monitor)draw(v.name,v.value,CAT_COLORS.variables);});
+}
+
+/* stage input mapping */
+function stagePoint(e){const r=stageCanvas.getBoundingClientRect();const cx=(e.clientX-r.left)/r.width*480,cy=(e.clientY-r.top)/r.height*360;return{x:cx-240,y:180-cy};}
+stageCanvas.addEventListener('pointermove',e=>{const p=stagePoint(e);IO.mouseX=clamp(p.x,-240,240);IO.mouseY=clamp(p.y,-180,180);});
+stageCanvas.addEventListener('pointerdown',e=>{IO.mouseDown=true;const p=stagePoint(e);
+  const hit=[...PROJ.sprites].reverse().find(s=>s.visible&&Math.hypot(p.x-s.x,p.y-s.y)<s.size/100*22);
+  ensureLoop();
+  if(hit){hatClickSprite(hit);}
+  else{startHats('stageclick');}
+});
+window.addEventListener('pointerup',()=>IO.mouseDown=false);
+function hatClickSprite(sp){(sp.scripts||[]).forEach(scr=>{const hat=scr.stack[0];if(hat&&DEFS[hat.op]&&DEFS[hat.op].hat==='click')startThread(sp,scr.stack.slice(1),scr.id);});}
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();IO.keys[k]=true;
+  if(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+  ensureLoop();fireKeyHats(k);});
+window.addEventListener('keyup',e=>{IO.keys[e.key.toLowerCase()]=false;});
+function fireKeyHats(k){const targets=[PROJ.stage,...PROJ.sprites];targets.forEach(sp=>(sp.scripts||[]).forEach(scr=>{
+  const hat=scr.stack[0];if(hat&&DEFS[hat.op]&&DEFS[hat.op].hat==='key'){const want=normKey(hat.fields.KEY);
+    if(want==='any'||want===k)startThread(sp,scr.stack.slice(1),scr.id);}}));}
+
+/* ---------------------------------------------------------------------------
+   PALETTE + WORKSPACE RENDERING (defined in part 2 script below)
+---------------------------------------------------------------------------*/
+</script>
+<script>
+"use strict";
+/* ============================================================================
+   BLOQ STUDIO — UI, drag & drop editor, Builds engine, persistence.
+   Loaded after bloq-studio.html's inline script; shares its globals.
+   ==========================================================================*/
+
+/* ---- palette catalogue (order + which ops show) ---- */
+const CATEGORIES=[
+  {id:'motion',name:'Motion'},{id:'looks',name:'Looks'},{id:'sound',name:'Sound'},
+  {id:'events',name:'Events'},{id:'control',name:'Control'},{id:'sensing',name:'Sensing'},
+  {id:'operators',name:'Operators'},{id:'variables',name:'Variables'},{id:'lists',name:'Lists'},
+  {id:'myblocks',name:'My Blocks'}
+];
+const PALETTE_ORDER={
+  motion:['motion_movesteps','motion_turnright','motion_turnleft','motion_pointindirection','motion_pointtowards','motion_gotoxy','motion_goto','motion_glide','motion_changexby','motion_setx','motion_changeyby','motion_sety','motion_ifonedge','motion_setrotationstyle','motion_xposition','motion_yposition','motion_direction'],
+  looks:['looks_sayforsecs','looks_say','looks_thinkforsecs','looks_think','looks_switchcostume','looks_nextcostume','looks_switchbackdrop','looks_nextbackdrop','looks_changesize','looks_setsize','looks_changeeffect','looks_seteffect','looks_cleareffects','looks_show','looks_hide','looks_gotofront','looks_changelayers','looks_costumenumber','looks_size','looks_backdropnumber'],
+  sound:['sound_play','sound_playuntildone','sound_stopall','sound_changevolby','sound_setvol','sound_volume'],
+  events:['event_whenflagclicked','event_whenkeypressed','event_whenthisspriteclicked','event_whenstageclicked','event_whenbackdropswitches','event_whenbroadcast','event_broadcast','event_broadcastwait'],
+  control:['control_wait','control_repeat','control_forever','control_if','control_if_else','control_wait_until','control_repeat_until','control_stop','control_start_as_clone','control_create_clone','control_delete_clone'],
+  sensing:['sensing_touching','sensing_keypressed','sensing_mousedown','sensing_mousex','sensing_mousey','sensing_distanceto','sensing_askandwait','sensing_answer','sensing_timer','sensing_resettimer','sensing_of','sensing_current'],
+  operators:['operator_add','operator_subtract','operator_multiply','operator_divide','operator_random','operator_gt','operator_lt','operator_equals','operator_and','operator_or','operator_not','operator_join','operator_letter_of','operator_length','operator_contains','operator_mod','operator_round','operator_mathop'],
+  variables:['data_setvariableto','data_changevariableby','data_showvariable','data_hidevariable'],
+  lists:['data_addtolist','data_deleteoflist','data_deletealloflist','data_insertatlist','data_replaceitem','data_itemoflist','data_itemnumoflist','data_lengthoflist','data_listcontainsitem'],
+  myblocks:[]
+};
+const ADVANCED_ONLY=new Set(['lists','myblocks']);
+let ACTIVE_CAT='motion', MODE='advanced';
+
+/* ============================ PALETTE ==================================== */
+function renderPalette(){
+  const catBox=$('#cats');catBox.innerHTML='';
+  CATEGORIES.filter(c=>MODE==='advanced'||!ADVANCED_ONLY.has(c.id)).forEach(c=>{
+    const b=document.createElement('button');b.className='cat'+(c.id===ACTIVE_CAT?' on':'');
+    b.innerHTML=`<span class="dot" style="background:${CAT_COLORS[c.id]}"></span>${c.name}`;
+    b.onclick=()=>{ACTIVE_CAT=c.id;renderPalette();$('#blocks').scrollTop=0;};
+    catBox.appendChild(b);
+  });
+  const box=$('#blocks');box.innerHTML='';
+  const q=$('#palSearch').value.trim().toLowerCase();
+  const cats=q?CATEGORIES:CATEGORIES.filter(c=>c.id===ACTIVE_CAT);
+  cats.forEach(cat=>{
+    if(MODE==='beginner'&&ADVANCED_ONLY.has(cat.id))return;
+    let ops=[...(PALETTE_ORDER[cat.id]||[])];
+    // dynamic variable/list reporters
+    if(cat.id==='variables'){allVars(currentSprite()).forEach(v=>ops.unshift('VAR:'+v.name));}
+    if(cat.id==='lists'){allLists(currentSprite()).forEach(v=>ops.unshift('LIST:'+v.name));}
+    if(cat.id==='myblocks'){PROJ.customBlocks.forEach(d=>{ops.push('PROC:'+d.proccode);(d.args||[]).forEach(a=>ops.push('ARG:'+d.proccode+':'+a.name+':'+a.type));});}
+    let items=ops.map(op=>({op,el:paletteBlockFor(op)})).filter(x=>x.el);
+    if(q)items=items.filter(x=>x.el.textContent.toLowerCase().includes(q));
+    if(!items.length&&!(cat.id==='variables'||cat.id==='lists'||cat.id==='myblocks'))return;
+    const h=document.createElement('div');h.className='pal-head';h.textContent=cat.name;box.appendChild(h);
+    if(cat.id==='variables'){box.appendChild(mkButton('Make a Variable',()=>makeVariable()));}
+    if(cat.id==='lists'){box.appendChild(mkButton('Make a List',()=>makeList()));}
+    if(cat.id==='myblocks'){box.appendChild(mkButton('Make a Block',()=>makeCustomBlock()));}
+    items.forEach(({op,el})=>{const w=document.createElement('div');w.className='pal-block';w.appendChild(el);box.appendChild(w);});
+  });
+  if(!box.querySelector('.pal-block')&&q){box.insertAdjacentHTML('beforeend','<div class="empty-note">No blocks match “'+q+'”.</div>');}
+}
+function mkButton(label,fn){const b=document.createElement('button');b.className='mk-btn';b.textContent='✚ '+label;b.onclick=fn;return b;}
+function paletteBlockFor(op){
+  let block;
+  if(op.startsWith('VAR:')){block=makeBlock('data_variable');block.fields.VAR=op.slice(4);}
+  else if(op.startsWith('LIST:')){block=makeBlock('data_listcontents');block.fields.LIST=op.slice(5);}
+  else if(op.startsWith('PROC:')){const d=PROJ.customBlocks.find(x=>x.proccode===op.slice(5));if(!d)return null;block=makeBlock('procedures_call');block.proccode=d.proccode;}
+  else if(op.startsWith('ARG:')){const[,,name,type]=op.split(':');block=makeBlock(type==='bool'?'argument_reporter_boolean':'argument_reporter_string_number');block.argName=name;}
+  else{if(!DEFS[op])return null;block=makeBlock(op);}
+  const el=renderBlock(block,{palette:true});
+  el.dataset.pop=op;
+  el.addEventListener('pointerdown',e=>startPaletteDrag(e,block));
+  return el;
+}
+
+/* ============================ BLOCK RENDER =============================== */
+function renderBlock(b,opt={}){
+  const def=DEFS[b.op];if(!def)return document.createElement('span');
+  const color=CAT_COLORS[def.cat]||'#888';
+  if((def.shape==='c'||def.shape==='c2')&&!opt.palette===false){/*noop*/}
+  if(def.shape==='c'||def.shape==='c2')return renderCBlock(b,def,color,opt);
+  const el=document.createElement('div');
+  el.className='block '+(def.shape==='reporter'?'reporter':def.shape==='bool'?'bool':def.shape==='hat'?'hat':def.shape==='cap'?'cap':'stack');
+  el.style.background=color; if(def.shape==='reporter'||def.shape==='bool')el.style.color='#fff';
+  el.style.filter='saturate(1)';
+  buildParts(el,specOf(b.op,b),b,color,opt);
+  if(!opt.palette)registerBlockEl(el,b);
+  return el;
+}
+function renderCBlock(b,def,color,opt){
+  const wrap=document.createElement('div');wrap.className='c-wrap';
+  const head=document.createElement('div');head.className='block stack';head.style.background=color;head.style.borderBottomLeftRadius='0';head.style.borderBottomRightRadius='0';
+  const spec=specOf(b.op,b);
+  // header: parts up to first stack
+  let idx=0;for(;idx<spec.length;idx++){if(typeof spec[idx]==='object'&&spec[idx].t==='stack')break;}
+  buildParts(head,spec.slice(0,idx),b,color,opt);
+  if(!opt.palette)registerBlockEl(head,b);
+  wrap.appendChild(head);
+  // first branch
+  wrap.appendChild(makeBranch(b,'SUBSTACK',color,opt));
+  if(def.shape==='c2'){
+    const mid=document.createElement('div');mid.className='block stack';mid.style.background=color;mid.style.borderRadius='0';
+    // find the 'else' label token (string between the two stacks)
+    let elseLbl='else';for(let j=idx+1;j<spec.length;j++){if(typeof spec[j]==='string'){elseLbl=spec[j];break;}}
+    mid.innerHTML=`<span class="lbl">${elseLbl}</span>`;
+    wrap.appendChild(mid);
+    wrap.appendChild(makeBranch(b,'SUBSTACK2',color,opt));
+  }
+  const foot=document.createElement('div');foot.className='c-foot';foot.style.background=color;wrap.appendChild(foot);
+  return wrap;
+}
+function makeBranch(b,name,color,opt){
+  const br=document.createElement('div');br.className='c-branch';br.style.borderColor=color;
+  const slot=document.createElement('div');slot.className='stack-slot c-mouth';
+  const stack=b.inputs[name]||(b.inputs[name]=[]);
+  renderStackInto(slot,stack,opt);
+  if(!opt.palette)registerMouth(slot,stack,b,name);
+  br.appendChild(slot);return br;
+}
+function renderStackInto(container,stack,opt){
+  stack.forEach((blk,i)=>{const el=renderBlock(blk,opt);
+    if(!opt.palette){const meta=EL_META.get(el.classList.contains('c-wrap')?el.querySelector('.block'):el);if(meta){meta.parentArray=stack;meta.index=i;}}
+    container.appendChild(el);});
+}
+function buildParts(el,spec,b,color,opt){
+  spec.forEach(part=>{
+    if(typeof part==='string'){const s=document.createElement('span');s.className='lbl';s.textContent=part;el.appendChild(s);return;}
+    if(part.t==='stack')return;
+    if(part.t==='label-arg'){const chip=document.createElement('span');chip.className='block reporter';chip.style.background='rgba(0,0,0,.18)';chip.style.padding='2px 10px';chip.style.margin='0 2px';chip.textContent=part.name||part.i;el.appendChild(chip);return;}
+    if(part.t==='menu'){el.appendChild(menuControl(b,part,opt));return;}
+    if(part.t==='bool'){el.appendChild(boolSlot(b,part.i,color,opt));return;}
+    // num/txt input, possibly holding a reporter
+    el.appendChild(valueSlot(b,part,opt));
+  });
+}
+function valueSlot(b,part,opt){
+  const val=b.inputs[part.i];
+  if(val&&typeof val==='object'&&val.op){ // embedded reporter
+    const span=document.createElement('span');span.className='embed';span.appendChild(renderBlock(val,opt));
+    if(!opt.palette)registerSlot(span,b,part.i,'value');
+    return span;
+  }
+  const inp=document.createElement('input');inp.className='slot '+(part.t==='num'?'num':'txt');
+  inp.value=(val==null?'':val);inp.spellcheck=false;
+  sizeInput(inp);
+  inp.addEventListener('input',()=>{sizeInput(inp);});
+  inp.addEventListener('change',()=>{b.inputs[part.i]=inp.value;autosave();});
+  inp.addEventListener('pointerdown',e=>e.stopPropagation());
+  if(opt.palette)inp.readOnly=true;
+  else registerSlot(inp,b,part.i,'value');
+  return inp;
+}
+function sizeInput(inp){const len=Math.max(1,(inp.value||'').length);inp.style.width=(len*8.2+14)+'px';}
+function boolSlot(b,name,color,opt){
+  const val=b.inputs[name];
+  if(val&&typeof val==='object'&&val.op){const span=document.createElement('span');span.className='embed';span.appendChild(renderBlock(val,opt));
+    if(!opt.palette)registerSlot(span,b,name,'bool');return span;}
+  const s=document.createElement('span');s.className='boolslot';
+  if(!opt.palette)registerSlot(s,b,name,'bool');
+  return s;
+}
+function menuControl(b,part,opt){
+  const sel=document.createElement('select');sel.className='slot-menu';
+  const opts=menuOptions(b.op,part.i,{sprite:editingTarget()});
+  const cur=b.fields[part.i];
+  const list=opts.length?opts:[cur];
+  if(cur&&!list.includes(cur))list.unshift(cur);
+  list.forEach(o=>{const opt2=document.createElement('option');opt2.value=o;opt2.textContent=menuLabel(o);sel.appendChild(opt2);});
+  sel.value=cur;
+  sel.addEventListener('pointerdown',e=>e.stopPropagation());
+  sel.addEventListener('change',()=>{b.fields[part.i]=sel.value;autosave();scheduleRender();});
+  if(opt.palette)sel.disabled=true;
+  return sel;
+}
+function menuLabel(o){return o==='_mouse_'?'mouse-pointer':o==='_edge_'?'edge':o==='_random_'?'random position':o==='_myself_'?'myself':o;}
+
+/* meta registry for DnD */
+const EL_META=new WeakMap();
+let SNAP_TARGETS=[]; // rebuilt at dragstart
+function registerBlockEl(el,b){EL_META.set(el,{type:'block',block:b});}
+function registerMouth(el,array,b,name){EL_META.set(el,{type:'mouth',array,block:b,name});}
+function registerSlot(el,b,name,slotKind){EL_META.set(el,{type:'slot',block:b,name,slotKind});}
+
+/* ============================ WORKSPACE ================================= */
+let VIEW={x:40,y:40,scale:1};
+function renderWorkspace(){
+  const canvas=$('#wsCanvas');canvas.innerHTML='';
+  canvas.style.transform=`translate(${VIEW.x}px,${VIEW.y}px) scale(${VIEW.scale})`;
+  const tgt=editingTarget();
+  (tgt.scripts||[]).forEach(scr=>{
+    const el=document.createElement('div');el.className='script';el.style.left=scr.x+'px';el.style.top=scr.y+'px';
+    el.dataset.sid=scr.id;
+    const slot=document.createElement('div');slot.className='stack-slot';
+    renderStackInto(slot,scr.stack,{});
+    el.appendChild(slot);
+    canvas.appendChild(el);
+    EL_META.get(slot)||EL_META.set(slot,{});
+    // attach script ref to first block meta
+    const first=scr.stack[0];
+    if(first){const fel=slot.firstElementChild;const m=EL_META.get(fel&&fel.classList.contains('c-wrap')?fel.querySelector('.block'):fel);if(m){m.script=scr;}}
+    el._script=scr;
+  });
+  attachBlockDrag(canvas);
+  updateHint();
+}
+let renderPending=false;
+function scheduleRender(){if(renderPending)return;renderPending=true;requestAnimationFrame(()=>{renderPending=false;renderWorkspace();renderPalette();});}
+function updateHint(){const tgt=editingTarget();$('#wsHint').style.display=(tgt.scripts&&tgt.scripts.length)?'none':'block';}
+
+/* dragging */
+let PENDING=null,DRAG=null;
+function attachBlockDrag(canvas){
+  $$('.script .block',canvas).forEach(el=>{
+    if(el._dragBound)return;el._dragBound=true;
+    el.addEventListener('pointerdown',e=>{
+      if(e.button!==0)return;
+      if(/INPUT|SELECT|TEXTAREA|OPTION/.test(e.target.tagName))return;
+      const meta=EL_META.get(el);if(!meta||meta.type!=='block')return;
+      e.stopPropagation();
+      PENDING={block:meta.block,fromEl:el,startX:e.clientX,startY:e.clientY,palette:false};
+      window.addEventListener('pointermove',onDragMove);
+      window.addEventListener('pointerup',onDragUp);
+    });
+    el.addEventListener('contextmenu',e=>{const meta=EL_META.get(el);if(meta&&meta.type==='block'){e.preventDefault();showBlockCtx(e,meta.block);}});
+  });
+}
+function startPaletteDrag(e,templateBlock){
+  if(e.button!==0)return;
+  if(/INPUT|SELECT/.test(e.target.tagName))return;
+  e.preventDefault();
+  PENDING={template:templateBlock,startX:e.clientX,startY:e.clientY,palette:true};
+  window.addEventListener('pointermove',onDragMove);
+  window.addEventListener('pointerup',onDragUp);
+}
+function onDragMove(e){
+  if(!DRAG){
+    const dx=e.clientX-PENDING.startX,dy=e.clientY-PENDING.startY;
+    if(Math.hypot(dx,dy)<4)return;
+    beginDrag(e);
+  }
+  if(DRAG){
+    const cx=(e.clientX-DRAG.grabX), cy=(e.clientY-DRAG.grabY);
+    DRAG.el.style.left=cx+'px';DRAG.el.style.top=cy+'px';
+    computeSnap(e);
+  }
+}
+function beginDrag(e){
+  pushUndo();
+  const tgt=editingTarget();
+  let stack;
+  if(PENDING.palette){stack=[deepCloneBlock(PENDING.template)];}
+  else{
+    // split: remove this block + following from its parent array
+    const meta=EL_META.get(PENDING.fromEl);
+    const arr=meta.parentArray, idx=meta.index;
+    if(arr&&idx!=null){stack=arr.splice(idx);}
+    else{stack=[PENDING.block];}
+    // if it was a reporter/bool embedded in a slot
+    if(!arr){
+      const owner=findEmbedOwner(PENDING.block);
+      if(owner){if(owner.kind==='bool')owner.block.inputs[owner.name]=null;else owner.block.inputs[owner.name]=owner.default;stack=[PENDING.block];}
+    }
+  }
+  // remove empty scripts
+  const wsRect=$('#workspace').getBoundingClientRect();
+  const localX=(e.clientX-wsRect.left-VIEW.x)/VIEW.scale-6;
+  const localY=(e.clientY-wsRect.top-VIEW.y)/VIEW.scale-6;
+  const scr={id:uid('scr'),x:localX,y:localY,stack};
+  tgt.scripts.push(scr);
+  tgt.scripts=tgt.scripts.filter(s=>s.stack.length>0);
+  renderWorkspace();renderPalette();
+  const el=$(`.script[data-sid="${scr.id}"]`);
+  DRAG={script:scr,el,grabX:e.clientX-(el.getBoundingClientRect().left),grabY:e.clientY-(el.getBoundingClientRect().top),
+        isReporter:isReporterStack(stack)};
+  DRAG.grabX=e.clientX-(wsRect.left+VIEW.x+scr.x*VIEW.scale);
+  DRAG.grabY=e.clientY-(wsRect.top+VIEW.y+scr.y*VIEW.scale);
+  el.style.zIndex=999;el.classList.add('snapping');
+  buildSnapTargets(scr);
+}
+function isReporterStack(stack){if(stack.length!==1)return false;const d=DEFS[stack[0].op];return d&&(d.shape==='reporter'||d.shape==='bool');}
+function deepCloneBlock(b){return JSON.parse(JSON.stringify(b,(k,v)=>k==='id'?uid():v));}
+function findEmbedOwner(block){
+  const tgt=editingTarget();let found=null;
+  const scan=(b)=>{for(const k in b.inputs){const v=b.inputs[k];if(v===block){found={block:b,name:k,kind:isBoolInput(b.op,k)?'bool':'value',default:''};return;}
+    if(v&&typeof v==='object'&&v.op)scan(v);if(Array.isArray(v))v.forEach(scan);}};
+  tgt.scripts.forEach(s=>s.stack.forEach(scan));return found;
+}
+function isBoolInput(op,name){const p=specOf(op,{}).find(x=>x&&x.i===name);return p&&p.t==='bool';}
+
+function buildSnapTargets(dragScript){
+  SNAP_TARGETS=[];
+  const dragged=new Set();collectBlocks(dragScript.stack,dragged);
+  const canvas=$('#wsCanvas');
+  if(DRAG.isReporter){
+    $$('.slot,.boolslot,.embed',canvas).forEach(el=>{const m=EL_META.get(el);if(!m||m.type!=='slot')return;
+      if(dragged.has(m.block))return;
+      const wantBool=DEFS[dragScript.stack[0].op].shape==='bool';
+      if(wantBool&&m.slotKind!=='bool')return; if(!wantBool&&m.slotKind==='bool')return;
+      SNAP_TARGETS.push({kind:'slot',el,meta:m});});
+  }else{
+    $$('.script .block',canvas).forEach(el=>{const m=EL_META.get(el);if(!m||m.type!=='block')return;if(dragged.has(m.block))return;
+      const d=DEFS[m.block.op];if(d.shape==='reporter'||d.shape==='bool')return;
+      SNAP_TARGETS.push({kind:'after',el,meta:m});});
+    $$('.c-mouth',canvas).forEach(el=>{const m=EL_META.get(el);if(!m||m.type!=='mouth')return;if(m.block&&dragged.has(m.block))return;
+      SNAP_TARGETS.push({kind:'mouth',el,meta:m});});
+  }
+}
+function collectBlocks(stack,set){stack.forEach(b=>{set.add(b);for(const k in b.inputs){const v=b.inputs[k];if(Array.isArray(v))collectBlocks(v,set);else if(v&&typeof v==='object'&&v.op)set.add(v);}});}
+let snapHi=null;
+function computeSnap(e){
+  clearGhost();DRAG.snap=null;
+  const el=DRAG.el;const r=el.getBoundingClientRect();
+  const plugX=DRAG.isReporter?r.left+6:r.left+10, plugY=DRAG.isReporter?r.top+r.height/2:r.top+8;
+  let best=null,bestD=DRAG.isReporter?26:30;
+  SNAP_TARGETS.forEach(t=>{const tr=t.el.getBoundingClientRect();let tx,ty;
+    if(t.kind==='after'){tx=tr.left+10;ty=tr.bottom;}
+    else if(t.kind==='mouth'){tx=tr.left+8;ty=tr.top+4;}
+    else{tx=tr.left+8;ty=tr.top+tr.height/2;}
+    const d=Math.hypot(plugX-tx,plugY-ty);if(d<bestD){bestD=d;best=t;}});
+  if(best){DRAG.snap=best;showGhost(best);}
+}
+function showGhost(t){const tr=t.el.getBoundingClientRect();const ws=$('#workspace').getBoundingClientRect();
+  const g=document.createElement('div');g.className='ghost-drop';
+  if(t.kind==='slot'){g.style.left=(tr.left-ws.left)+'px';g.style.top=(tr.top-ws.top)+'px';g.style.width=tr.width+'px';g.style.height=tr.height+'px';}
+  else{const x=t.kind==='mouth'?tr.left-ws.left+2:tr.left-ws.left;const y=t.kind==='mouth'?tr.top-ws.top:tr.bottom-ws.top;
+    g.style.left=x+'px';g.style.top=(y-2)+'px';g.style.width=Math.max(60,tr.width)+'px';g.style.height='6px';}
+  $('#workspace').appendChild(g);snapHi=g;}
+function clearGhost(){if(snapHi){snapHi.remove();snapHi=null;}}
+function onDragUp(e){
+  window.removeEventListener('pointermove',onDragMove);window.removeEventListener('pointerup',onDragUp);
+  if(!DRAG){ // was a click
+    if(PENDING&&!PENDING.palette){const meta=EL_META.get(PENDING.fromEl);if(meta&&meta.script)runScript(meta.script); else if(meta&&meta.block)runLooseBlock(meta.block);}
+    else if(PENDING&&PENDING.palette){addBlockToWorkspace(PENDING.template);}
+    PENDING=null;return;}
+  clearGhost();
+  const tgt=editingTarget();const drag=DRAG;const stack=drag.script.stack;
+  const wsRect=$('#workspace').getBoundingClientRect();
+  if(drag.snap){
+    // remove floating script
+    tgt.scripts=tgt.scripts.filter(s=>s!==drag.script);
+    const t=drag.snap;
+    if(t.kind==='after'){const arr=t.meta.parentArray, idx=t.meta.index;
+      if(arr){arr.splice(idx+1,0,...stack);}else{ // block is a script top with no parentArray tracked → use script
+        const owner=findScriptOf(t.meta.block);if(owner){const i=owner.stack.indexOf(t.meta.block);owner.stack.splice(i+1,0,...stack);}}
+    }else if(t.kind==='mouth'){t.meta.array.unshift(...stack);}
+    else if(t.kind==='slot'){if(t.meta.slotKind==='bool')t.meta.block.inputs[t.meta.name]=stack[0];else t.meta.block.inputs[t.meta.name]=stack[0];}
+  }else{
+    // leave floating; snap to grid-ish
+    drag.script.x=Math.round(((e.clientX-wsRect.left-VIEW.x)/VIEW.scale-drag.grabX/VIEW.scale));
+    drag.script.y=Math.round(((e.clientY-wsRect.top-VIEW.y)/VIEW.scale-drag.grabY/VIEW.scale));
+    // if dropped over palette (x<0 area near palette) and it was from palette originally with single command -> keep anyway
+  }
+  DRAG=null;PENDING=null;
+  scheduleRender();autosave();maybeSmartHelp();
+}
+function findScriptOf(block){const tgt=editingTarget();return tgt.scripts.find(s=>containsBlock(s.stack,block));}
+function containsBlock(stack,block){for(const b of stack){if(b===block)return true;for(const k in b.inputs){const v=b.inputs[k];if(Array.isArray(v)&&containsBlock(v,block))return true;}}return false;}
+function addBlockToWorkspace(template){pushUndo();const tgt=editingTarget();const b=deepCloneBlock(template);
+  const y=40+(tgt.scripts.length*10)%200;tgt.scripts.push({id:uid('scr'),x:40,y,stack:[b]});scheduleRender();autosave();}
+function runScript(scr){ensureLoop();const tgt=editingTarget();const sp=tgt===PROJ.stage?PROJ.stage:tgt;
+  const hat=scr.stack[0];const stack=(hat&&DEFS[hat.op]&&DEFS[hat.op].hat)?scr.stack.slice(1):scr.stack.slice();
+  const el=$(`.script[data-sid="${scr.id}"]`);if(el){el.animate([{filter:'brightness(1.3)'},{filter:'brightness(1)'}],{duration:400});}
+  startThread(sp,stack);}
+function runLooseBlock(block){const scr=findScriptOf(block);if(scr)runScript(scr);}
+
+/* block context menu */
+function showBlockCtx(e,block){closeCtx();const m=document.createElement('div');m.className='ctx';m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';
+  const add=(label,fn)=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>{closeCtx();fn();};m.appendChild(b);};
+  add('Duplicate',()=>{pushUndo();const scr=findScriptOf(block);if(!scr)return;const i=scr.stack.indexOf(block);
+    const copy=scr.stack.slice(i>=0?i:0).map(deepCloneBlock);editingTarget().scripts.push({id:uid('scr'),x:scr.x+30,y:scr.y+30,stack:i>=0?copy:[deepCloneBlock(block)]});scheduleRender();autosave();});
+  add('Delete',()=>{pushUndo();deleteBlock(block);scheduleRender();autosave();});
+  m.appendChild(document.createElement('hr'));
+  add('Delete this script',()=>{pushUndo();const scr=findScriptOf(block);if(scr)editingTarget().scripts=editingTarget().scripts.filter(s=>s!==scr);scheduleRender();autosave();});
+  document.body.appendChild(m);setTimeout(()=>window.addEventListener('pointerdown',closeCtx,{once:true}),0);}
+function closeCtx(){$$('.ctx').forEach(x=>x.remove());}
+function deleteBlock(block){const tgt=editingTarget();
+  for(const scr of tgt.scripts){const i=scr.stack.indexOf(block);if(i>=0){scr.stack.splice(i,1);tgt.scripts=tgt.scripts.filter(s=>s.stack.length);return;}}
+  const owner=findEmbedOwner(block);if(owner){owner.block.inputs[owner.name]=owner.kind==='bool'?null:'';return;}
+  // inside a branch
+  const rm=(stack)=>{const i=stack.indexOf(block);if(i>=0){stack.splice(i,1);return true;}
+    for(const b of stack){for(const k in b.inputs){if(Array.isArray(b.inputs[k])&&rm(b.inputs[k]))return true;}}return false;};
+  tgt.scripts.forEach(s=>rm(s.stack));}
+
+/* workspace pan/zoom */
+(function(){const ws=$('#workspace');let panning=false,sx,sy;
+  ws.addEventListener('pointerdown',e=>{if(e.target.closest('.block')||e.target.closest('.ws-tools'))return;panning=true;sx=e.clientX-VIEW.x;sy=e.clientY-VIEW.y;ws.setPointerCapture(e.pointerId);});
+  ws.addEventListener('pointermove',e=>{if(!panning)return;VIEW.x=e.clientX-sx;VIEW.y=e.clientY-sy;$('#wsCanvas').style.transform=`translate(${VIEW.x}px,${VIEW.y}px) scale(${VIEW.scale})`;});
+  ws.addEventListener('pointerup',()=>panning=false);
+  ws.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();const d=e.deltaY<0?1.1:0.9;VIEW.scale=clamp(VIEW.scale*d,0.4,2.2);$('#wsCanvas').style.transform=`translate(${VIEW.x}px,${VIEW.y}px) scale(${VIEW.scale})`;},{passive:false});
+})();
+$('#zoomIn').onclick=()=>{VIEW.scale=clamp(VIEW.scale*1.15,0.4,2.2);renderWorkspace();};
+$('#zoomOut').onclick=()=>{VIEW.scale=clamp(VIEW.scale/1.15,0.4,2.2);renderWorkspace();};
+$('#zoomReset').onclick=()=>{VIEW={x:40,y:40,scale:1};renderWorkspace();};
+$('#cleanup').onclick=()=>{pushUndo();const tgt=editingTarget();let y=30;tgt.scripts.forEach(s=>{s.x=30;s.y=y;y+=estimateHeight(s.stack)+30;});renderWorkspace();autosave();};
+function estimateHeight(stack){let h=0;stack.forEach(b=>{h+=34;const d=DEFS[b.op];if(d&&(d.shape==='c'||d.shape==='c2')){h+=estimateHeight(b.inputs.SUBSTACK||[])+20;if(d.shape==='c2')h+=estimateHeight(b.inputs.SUBSTACK2||[])+20;}});return h;}
+
+/* ============================ VARIABLES / LISTS UI ====================== */
+function makeVariable(){const name=prompt('New variable name:','score');if(!name)return;const scope=confirm('OK = for all sprites (global)\nCancel = for this sprite only')?'global':'local';
+  addVariable(name.trim(),scope);toast('Variable “'+name.trim()+'” created');}
+function addVariable(name,scope,value=0){const owner=scope==='local'?currentSprite():PROJ.stage;
+  if(allVars(currentSprite()).some(v=>v.name===name))return findVar(currentSprite(),name);
+  const v={name,value,visible:true,monitor:scope!=='hidden'};owner.variables.push(v);renderPalette();renderStage();autosave();return v;}
+function makeList(){const name=prompt('New list name:','items');if(!name)return;const owner=confirm('OK = for all sprites (global)\nCancel = this sprite only')?PROJ.stage:currentSprite();
+  if(allLists(currentSprite()).some(l=>l.name===name))return;owner.lists.push({name:name.trim(),items:[],visible:true});renderPalette();autosave();}
+function makeCustomBlock(){const label=prompt('Name your block (use %s for a text/number input, %b for a boolean):\ne.g.  jump %s times','do a flip');if(!label)return;
+  const proccode=label; const args=[];let ai=0;label.split(/(%[sb])/).forEach(t=>{if(t==='%s')args.push({name:'arg'+(ai++),type:'str'});else if(t==='%b')args.push({name:'arg'+(ai++),type:'bool'});});
+  PROJ.customBlocks.push({proccode,label,args});
+  // add a definition hat to current sprite
+  const hat=makeBlock('procedures_definition');hat.proccode=proccode;hat.label=label;hat.args=args;hat.inputs.SUBSTACK=[];
+  editingTarget().scripts.push({id:uid('scr'),x:40,y:40,stack:[hat]});
+  ACTIVE_CAT='myblocks';scheduleRender();autosave();}
+/* dynamic spec builders for custom blocks */
+function dynDefineSpec(blk){const parts=['define '];const label=blk&&blk.label||'block';const args=blk&&blk.args||[];let ai=0;
+  label.split(/(%[sb])/).forEach(t=>{if(t==='%s'||t==='%b'){parts.push({i:args[ai]?args[ai].name:'arg'+ai,t:'label-arg',name:args[ai]&&args[ai].name});ai++;}else if(t)parts.push(t);});
+  parts.push({i:'SUBSTACK',t:'stack'});return parts;}
+function dynCallSpec(blk){const def=PROJ.customBlocks.find(d=>d.proccode===blk.proccode);if(!def)return['(missing block)'];
+  const parts=[];let ai=0;def.label.split(/(%[sb])/).forEach(t=>{if(t==='%s'){parts.push({i:def.args[ai].name,t:'txt',d:''});ai++;}else if(t==='%b'){parts.push({i:def.args[ai].name,t:'bool'});ai++;}else if(t)parts.push(t);});
+  return parts;}
+/* label-arg renders as a rounded arg reporter chip in the define hat */
+const _origBuild=buildParts;
+
+/* ============================ SPRITES PANEL ============================= */
+function renderSprites(){
+  const list=$('#spList');list.innerHTML='';
+  PROJ.sprites.filter(s=>!s.isClone).forEach(s=>{
+    const card=document.createElement('div');card.className='sp-card'+(s.id===PROJ.currentSprite?' on':'');
+    const cv=document.createElement('canvas');cv.width=64;cv.height=44;cv.className='thumb';drawThumb(cv,s);
+    const nm=document.createElement('div');nm.className='nm';nm.textContent=s.name;
+    const x=document.createElement('button');x.className='x';x.textContent='×';x.title='Delete sprite';
+    x.onclick=ev=>{ev.stopPropagation();deleteSprite(s);};
+    card.append(cv,nm,x);
+    card.onclick=()=>selectSprite(s.id);
+    card.oncontextmenu=e=>{e.preventDefault();dupSprite(s);};
+    list.appendChild(card);
+  });
+  // stage card
+  const st=document.createElement('div');st.className='sp-card'+(PROJ.currentSprite==='stage'?' on':'');
+  const cv=document.createElement('canvas');cv.width=64;cv.height=44;cv.className='thumb';const c=cv.getContext('2d');c.fillStyle=PROJ.stage.costumes[PROJ.stage.costume].color||'#fff';c.fillRect(0,0,64,44);c.strokeStyle='#ccc';c.strokeRect(0,0,64,44);
+  const nm=document.createElement('div');nm.className='nm';nm.textContent='Stage';st.append(cv,nm);st.onclick=()=>selectSprite('stage');list.appendChild(st);
+  // add button
+  const add=document.createElement('div');add.className='sp-add';add.textContent='＋';add.title='Add sprite';add.onclick=addSprite;list.appendChild(add);
+  renderSpriteProps();
+}
+function drawThumb(cv,s){const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);c.save();c.translate(32,24);c.scale(0.7,0.7);
+  const cost=s.costumes[s.costume]||{};if(cost.render&&SPRITE_ART[cost.render])SPRITE_ART[cost.render](c,cost.pose||0);
+  else{c.font='26px "Segoe UI Emoji",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(cost.emoji||'🐶',0,0);}c.restore();}
+function renderSpriteProps(){
+  const box=$('#spProps');const s=editingTarget();
+  if(s.isStage){box.innerHTML=`<div class="name"><b style="font-family:Fredoka">Stage</b><span style="color:var(--muted);font-weight:700;font-size:12px">Backdrops: ${s.costumes.length}</span></div>
+    <label>Backdrop</label><div style="grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap">${s.costumes.map((c,i)=>`<button class="chip${i===s.costume?' on':''}" data-bd="${i}">${c.name}</button>`).join('')}</div>`;
+    $$('[data-bd]',box).forEach(b=>b.onclick=()=>{s.costume=+b.dataset.bd;renderStage();renderSprites();});return;}
+  box.innerHTML=`
+    <div class="name">Sprite <input id="pName" value="${escapeHtml(s.name)}" style="max-width:150px"></div>
+    <label>x</label><input id="pX" type="number" value="${Math.round(s.x)}">
+    <label>y</label><input id="pY" type="number" value="${Math.round(s.y)}">
+    <label>Size</label><input id="pSize" type="number" value="${Math.round(s.size)}">
+    <label>Dir</label><input id="pDir" type="number" value="${Math.round(s.direction)}">
+    <label>Show</label><div><button class="switch ${s.visible?'on':''}" id="pShow"><b></b></button></div>
+    <label>Costume</label><div style="display:flex;gap:6px;align-items:center"><button class="chip" id="pCost">${s.costumes[s.costume].name}</button></div>`;
+  const bind=(id,key,fn)=>{const el=$('#'+id,box);el.onchange=()=>{s[key]=fn?fn(el.value):el.value;renderStage();autosave();if(key==='name'){renderSprites();renderPalette();}};};
+  bind('pName','name');bind('pX','x',toNum);bind('pY','y',toNum);bind('pSize','size',v=>clamp(toNum(v),5,400));bind('pDir','direction',v=>wrapDir(toNum(v)));
+  $('#pShow',box).onclick=()=>{s.visible=!s.visible;renderSpriteProps();renderStage();autosave();};
+  $('#pCost',box).onclick=()=>{s.costume=(s.costume+1)%s.costumes.length;renderStage();renderSprites();};
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function selectSprite(id){PROJ.currentSprite=id;renderSprites();renderWorkspace();renderPalette();autosave();}
+function addSprite(){const emoji=EMOJI[rand(0,EMOJI.length-1)];const name=uniqueName('Sprite',PROJ.sprites.map(s=>s.name));
+  const s=newSprite(name,emoji);s.x=rand(-120,120);s.y=rand(-80,80);PROJ.sprites.push(s);selectSprite(s.id);renderStage();autosave();toast('Added '+name);}
+function dupSprite(s){const c=JSON.parse(JSON.stringify(s));c.id=uid('sp');c.name=uniqueName(s.name,PROJ.sprites.map(x=>x.name));c.isClone=false;c.x+=20;c.y-=20;
+  PROJ.sprites.push(c);selectSprite(c.id);renderStage();autosave();toast('Duplicated '+s.name);}
+function deleteSprite(s){if(PROJ.sprites.filter(x=>!x.isClone).length<=1){toast('Keep at least one sprite');return;}
+  pushUndo();PROJ.sprites=PROJ.sprites.filter(x=>x!==s);if(PROJ.currentSprite===s.id)PROJ.currentSprite=PROJ.sprites.find(x=>!x.isClone).id;
+  renderSprites();renderWorkspace();renderStage();autosave();}
+function uniqueName(base,taken){let n=base,i=2;while(taken.includes(n))n=base+i++;return n;}
+
+/* ============================ TOP BAR / SHORTCUTS ======================= */
+$('#btnFlag').onclick=()=>greenFlag();
+$('#btnStop').onclick=()=>stopEverything();
+$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;MODE=b.dataset.mode;
+  $$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));if(MODE==='beginner'&&ADVANCED_ONLY.has(ACTIVE_CAT))ACTIVE_CAT='motion';renderPalette();autosave();});
+$('#btnFull').onclick=()=>{$('#stageBox').classList.toggle('big');renderStage();};
+$('#buildsClose').onclick=()=>closeOverlay('buildsOverlay');
+$('#btnCmd').onclick=()=>openCmd();$('#btnMenu').onclick=()=>openOverlay('menuOverlay');
+$('#menuClose').onclick=()=>closeOverlay('menuOverlay');
+$('#palSearch').addEventListener('input',renderPalette);
+
+window.addEventListener('keydown',e=>{
+  const typing=/INPUT|SELECT|TEXTAREA/.test((document.activeElement||{}).tagName);
+  const anyOverlay=$$('.overlay.on').length>0;
+  // Shift+0 → Builds (global, unless typing)
+  if(e.shiftKey&&(e.key==='0'||e.code==='Digit0')&&!typing){e.preventDefault();openBuilds();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCmd();return;}
+  if(e.key==='Escape'){$$('.overlay.on').forEach(o=>o.classList.remove('on'));closeCtx();return;}
+  if(typing)return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
+  if(anyOverlay)return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();exportProject();return;}
+  if(e.key===' '){e.preventDefault();THREADS.length?stopEverything():greenFlag();return;}
+});
+
+/* ============================ PERSISTENCE ============================== */
+const SAVE_KEY='bloq.studio.project.v2';
+const LS={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+let saveTimer=null;
+function autosave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
+  const data=serialize();LS.set(SAVE_KEY,data);const el=$('#saveInfo');if(el)el.textContent='Saved '+new Date().toLocaleTimeString();
+},600);}
+function serialize(){const clean=JSON.parse(JSON.stringify(PROJ));clean.sprites=clean.sprites.filter(s=>!s.isClone);return JSON.stringify(clean);}
+function loadSaved(){const d=LS.get(SAVE_KEY);if(d){try{PROJ=JSON.parse(d);normalizeProject();return true;}catch(e){}}return false;}
+function normalizeProject(){PROJ.messages=PROJ.messages||['message1'];PROJ.customBlocks=PROJ.customBlocks||[];PROJ.stage=PROJ.stage||newStage();
+  PROJ.sprites.forEach(s=>{s.effects=s.effects||{};s.variables=s.variables||[];s.lists=s.lists||[];s.scripts=s.scripts||[];s.sounds=s.sounds||[{name:'pop',freq:440,dur:120}];});
+  if(!PROJ.sprites.some(s=>s.id===PROJ.currentSprite)&&PROJ.currentSprite!=='stage')PROJ.currentSprite=PROJ.sprites[0].id;}
+function exportProject(){const json=serialize();const embedded=(()=>{try{return window.self!==window.top;}catch(e){return true;}})();
+  if(!embedded){try{const blob=new Blob([json],{type:'application/json'});const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=(PROJ.name||'project')+'.bloq.json';a.click();toast('Project exported as .json');return;}catch(e){}}
+  // Embedded (artifact viewer blocks downloads) → copy JSON to clipboard so nothing is a dead end
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(json)
+    .then(()=>toast('Project JSON copied — paste it into a .json file to save'))
+    .catch(()=>{try{prompt('Copy your project JSON:',json);}catch(_){}});}
+  else{try{prompt('Copy your project JSON:',json);}catch(_){}}}
+$('#mExport').onclick=exportProject;
+$('#mImport').onclick=()=>$('#fileInput').click();
+$('#fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{PROJ=JSON.parse(r.result);normalizeProject();stopEverything();fullRender();autosave();toast('Project imported');closeOverlay('menuOverlay');}catch(err){toast('Could not read file');}};r.readAsText(f);});
+$('#mNew').onclick=()=>{if(confirm('Start a new project? Current work is autosaved in this browser but will be replaced.')){PROJ=blankProject();stopEverything();fullRender();autosave();closeOverlay('menuOverlay');}};
+$('#mTheme').onclick=toggleTheme;
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':cur==='light'?'dark':(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);LS.set('bloq.theme',next);}
+
+/* undo/redo */
+const UNDO=[],REDO=[];
+function pushUndo(){UNDO.push(serialize());if(UNDO.length>50)UNDO.shift();REDO.length=0;}
+function undo(){if(!UNDO.length)return;REDO.push(serialize());PROJ=JSON.parse(UNDO.pop());normalizeProject();stopEverything();fullRender();autosave();toast('Undo');}
+function redo(){if(!REDO.length)return;UNDO.push(serialize());PROJ=JSON.parse(REDO.pop());normalizeProject();stopEverything();fullRender();autosave();toast('Redo');}
+
+/* toasts */
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;$('#toasts').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300);},1800);}
+
+/* overlays */
+function openOverlay(id){$('#'+id).classList.add('on');}
+function closeOverlay(id){$('#'+id).classList.remove('on');}
+$$('.overlay').forEach(o=>o.addEventListener('pointerdown',e=>{if(e.target===o)o.classList.remove('on');}));
+
+/* ============================ FULL RENDER ============================== */
+function fullRender(){safeRun('palette',renderPalette);safeRun('workspace',renderWorkspace);safeRun('sprites',renderSprites);safeRun('stage',renderStage);}
+function safeRun(label,fn){try{fn();}catch(e){console.error('['+label+']',e);showErr(label+': '+(e&&e.message||e));}}
+function showErr(msg){let d=document.getElementById('__err');
+  if(!d){d=document.createElement('div');d.id='__err';
+    d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:999999;background:#ef476f;color:#fff;font:12px/1.45 ui-monospace,Menlo,monospace;padding:9px 34px 9px 12px;border-radius:9px;white-space:pre-wrap;box-shadow:0 8px 24px rgba(0,0,0,.35)';
+    const x=document.createElement('button');x.textContent='✕';x.style.cssText='position:absolute;right:6px;top:5px;border:0;background:transparent;color:#fff;font-weight:800;font-size:14px;cursor:pointer';x.onclick=()=>d.remove();
+    const t=document.createElement('div');t.id='__errtext';d.appendChild(x);d.appendChild(t);(document.body||document.documentElement).appendChild(d);}
+  const t=document.getElementById('__errtext');if(t)t.textContent='⚠ Bloq error — '+msg;}
+try{window.addEventListener('error',e=>{try{showErr((e.message||'script error')+'  ['+((e.filename||'').split('/').pop())+':'+(e.lineno||'?')+']');}catch(_){}});}catch(_){}
+
+/* ---- Builds engine + command palette + smart help live in bloq-builds.js ---- */
+
+</script>
+<script>
+"use strict";
+/* ============================================================================
+   BLOQ STUDIO — BUILDS: reusable systems inserted as REAL, editable blocks.
+   Signature feature: Shift+0 opens the library; every Build generates blocks
+   the user can open and modify. Insertion inspects the project, reuses
+   compatible objects, resolves name conflicts, prevents duplicates.
+   ==========================================================================*/
+
+/* ---- block-builder mini DSL ---- */
+function bk(op,inputs,fields,extra){const b=makeBlock(op);
+  if(inputs)for(const k in inputs)b.inputs[k]=inputs[k];
+  if(fields)for(const k in fields)b.fields[k]=fields[k];
+  if(extra)Object.assign(b,extra);return b;}
+const V =name=>bk('data_variable',null,{VAR:name});
+const KEYD=k=>bk('sensing_keypressed',null,{KEY:k});
+const TOUCH=o=>bk('sensing_touching',null,{OBJ:o});
+const ADD=(a,b)=>bk('operator_add',{A:a,B:b});
+const SUB=(a,b)=>bk('operator_subtract',{A:a,B:b});
+const LT=(a,b)=>bk('operator_lt',{A:a,B:b});
+const GT=(a,b)=>bk('operator_gt',{A:a,B:b});
+const EQ=(a,b)=>bk('operator_equals',{A:a,B:b});
+const AND=(a,b)=>bk('operator_and',{A:a,B:b});
+const flag=()=>bk('event_whenflagclicked');
+
+/* ---- install context ---- */
+function makeInstaller(cfg){
+  const notes=[];
+  return {
+    cfg,notes,
+    target:cfg.__target||currentSprite(),
+    ensureVar(name,scope='global',val=0){let v=findVar(currentSprite(),name);if(v){notes.push('reused variable “'+name+'”');return v;}
+      v=addVariable(uniqueName(name,allVars(currentSprite()).map(x=>x.name)),scope,val);notes.push('added variable “'+v.name+'”');return v;},
+    ensureList(name,scope='global'){let l=findList(currentSprite(),name);if(l)return l;const owner=scope==='local'?currentSprite():PROJ.stage;
+      const nm=uniqueName(name,allLists(currentSprite()).map(x=>x.name));owner.lists.push(l={name:nm,items:[],visible:true});notes.push('added list “'+nm+'”');return l;},
+    ensureSprite(name,emoji,costumes){let s=PROJ.sprites.find(x=>x.name.toLowerCase()===name.toLowerCase()&&!x.isClone);
+      if(s){notes.push('reused sprite “'+s.name+'”');return s;}s=newSprite(uniqueName(name,PROJ.sprites.map(x=>x.name)),emoji,costumes);
+      PROJ.sprites.push(s);notes.push('added sprite “'+s.name+'”');return s;},
+    ensureMessage(m){if(!PROJ.messages.includes(m))PROJ.messages.push(m);return m;},
+    addScript(target,stack,buildId,key){
+      target.scripts=target.scripts||[];
+      if(buildId&&target.scripts.some(s=>s._build===buildId&&s._key===key)){notes.push('skipped a duplicate script');return;}
+      let maxY=10;target.scripts.forEach(s=>maxY=Math.max(maxY,s.y+140));
+      target.scripts.push({id:uid('scr'),x:40,y:maxY,stack,_build:buildId,_key:key});
+    }
+  };
+}
+
+/* Compose an existing build inside a full-game installer (reuses tested logic). */
+function runSub(id,I,cfg){const b=BUILDS.find(x=>x.id===id);if(!b)return;const saved=I.cfg;
+  I.cfg=Object.assign({},defaultsFor(b),cfg||{});I.cfg.__target=I.target;
+  try{b.apply(I);}catch(e){console.error('sub '+id,e);}I.cfg=saved;}
+
+/* ======================= BUILD LIBRARY ================================= */
+/* Each: id,name,desc,cat,icon,color,difficulty,tags,config?,needsSprite?,apply(I) */
+const BUILDS=[
+/* ========== FULL GAMES (one click → a complete, playable game) ========== */
+{id:'game_platformer',name:'Platformer Adventure',cat:'Full Games',icon:'🏰',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['platformer','coins','jump','full game'],full:true,
+ apply(I){const p=I.target;p.name=uniqueName('Hero',PROJ.sprites.filter(s=>s!==p).map(s=>s.name));
+   runSub('platformcollision',I,{speed:5,jump:14,gravity:1,floor:-150});
+   runSub('coins',I,{count:8,player:p.name});
+   const score=I.ensureVar('score');
+   I.addScript(PROJ.stage,[flag(),bk('data_setvariableto',{VAL:0},{VAR:score.name}),
+     bk('control_wait_until',{COND:GT(V(score.name),7)}),bk('looks_switchbackdrop',null,{BD:'blue'})],'game_platformer','win');
+   I.notes.push('Collect all 8 coins! Arrows to move, ↑ to jump onto platforms.');}},
+
+{id:'game_collector',name:'Coin Dash',cat:'Full Games',icon:'🪙',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['top-down','coins','timer','full game'],full:true,
+ apply(I){const p=I.target;runSub('topdown',I,{speed:5});runSub('coins',I,{count:12,player:p.name});runSub('timer',I,{secs:30});
+   I.notes.push('Grab as many coins as you can before the timer runs out! WASD / arrows.');}},
+
+{id:'game_dodge',name:'Falling Dodge',cat:'Full Games',icon:'☄️',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['dodge','survival','clones','full game'],full:true,
+ apply(I){const p=I.target;const score=I.ensureVar('score');score.monitor=true;const over=I.ensureMessage('game over');
+   const rock=I.ensureSprite('Rock','🪨');
+   I.addScript(p,[flag(),bk('motion_gotoxy',{X:0,Y:-150}),bk('data_setvariableto',{VAL:0},{VAR:score.name}),
+     bk('control_forever',{SUBSTACK:[
+       bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_changexby',{DX:7})]}),
+       bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_changexby',{DX:-7})]})]})],'game_dodge','move');
+   I.addScript(p,[flag(),bk('control_forever',{SUBSTACK:[bk('control_wait',{SECS:1}),bk('data_changevariableby',{VAL:1},{VAR:score.name})]})],'game_dodge','score');
+   I.addScript(rock,[flag(),bk('looks_hide'),bk('control_forever',{SUBSTACK:[bk('control_create_clone',null,{OF:'_myself_'}),bk('control_wait',{SECS:bk('operator_random',{FROM:0.4,TO:1.2})})]})],'game_dodge','spawn');
+   I.addScript(rock,[bk('control_start_as_clone'),bk('motion_gotoxy',{X:bk('operator_random',{FROM:-210,TO:210}),Y:180}),bk('looks_show'),
+     bk('control_repeat_until',{COND:bk('operator_or',{A:TOUCH(p.name),B:LT(bk('motion_yposition'),-175)}),SUBSTACK:[bk('motion_changeyby',{DY:-7})]}),
+     bk('control_if',{COND:TOUCH(p.name),SUBSTACK:[bk('event_broadcast',null,{MSG:over})]}),bk('control_delete_clone')],'game_dodge','fall');
+   I.addScript(p,[bk('event_whenbroadcast',null,{MSG:over}),bk('looks_say',{MSG:'Game Over!'}),bk('control_stop',null,{OPT:'all'})],'game_dodge','over');
+   I.notes.push('Dodge the falling rocks with ← →. Your score climbs the longer you survive!');}},
+
+{id:'game_whack',name:'Whack-a-Mole',cat:'Full Games',icon:'🔨',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['click','reflex','timer','full game'],full:true,
+ apply(I){const score=I.ensureVar('score');score.value=0;score.monitor=true;const t=I.ensureVar('time');t.value=30;t.monitor=true;
+   const mole=I.ensureSprite('Mole','🐹');const up=I.ensureMessage('times up');
+   I.addScript(PROJ.stage,[flag(),bk('data_setvariableto',{VAL:0},{VAR:score.name}),bk('data_setvariableto',{VAL:30},{VAR:t.name}),
+     bk('control_repeat_until',{COND:LT(V(t.name),1),SUBSTACK:[bk('control_wait',{SECS:1}),bk('data_changevariableby',{VAL:-1},{VAR:t.name})]}),bk('event_broadcast',null,{MSG:up})],'game_whack','timer');
+   I.addScript(mole,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('motion_gotoxy',{X:bk('operator_random',{FROM:-190,TO:190}),Y:bk('operator_random',{FROM:-120,TO:120})}),
+     bk('looks_show'),bk('control_wait',{SECS:bk('operator_random',{FROM:0.5,TO:1})}),bk('looks_hide'),bk('control_wait',{SECS:0.3})]})],'game_whack','pop');
+   I.addScript(mole,[bk('event_whenthisspriteclicked'),bk('data_changevariableby',{VAL:1},{VAR:score.name}),bk('looks_hide')],'game_whack','hit');
+   I.addScript(mole,[bk('event_whenbroadcast',null,{MSG:up}),bk('looks_hide'),bk('looks_say',{MSG:'Time!'}),bk('control_stop',null,{OPT:'all'})],'game_whack','end');
+   I.notes.push('Click the mole as fast as you can before time runs out!');}},
+
+{id:'game_flappy',name:'Flappy Bird',cat:'Full Games',icon:'🐤',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['flappy','gravity','pipes','full game'],full:true,
+ apply(I){const p=I.target;const vy=I.ensureVar('vy','local',0);const score=I.ensureVar('score');score.monitor=true;const over=I.ensureMessage('game over');
+   const pipe=I.ensureSprite('Pipe','🟩',[{name:'pipe',render:'platform'}]);
+   I.addScript(p,[flag(),bk('motion_gotoxy',{X:-120,Y:0}),bk('data_setvariableto',{VAL:0},{VAR:vy.name}),bk('data_setvariableto',{VAL:0},{VAR:score.name}),
+     bk('control_forever',{SUBSTACK:[bk('data_changevariableby',{VAL:-1},{VAR:vy.name}),bk('motion_changeyby',{DY:V(vy.name)}),
+       bk('control_if',{COND:bk('operator_or',{A:TOUCH('_edge_'),B:TOUCH(pipe.name)}),SUBSTACK:[bk('event_broadcast',null,{MSG:over})]})]})],'game_flappy','physics');
+   I.addScript(p,[bk('event_whenkeypressed',null,{KEY:'space'}),bk('data_setvariableto',{VAL:8},{VAR:vy.name})],'game_flappy','flap');
+   I.addScript(pipe,[flag(),bk('looks_hide'),bk('control_forever',{SUBSTACK:[bk('control_create_clone',null,{OF:'_myself_'}),bk('control_wait',{SECS:1.6})]})],'game_flappy','spawn');
+   I.addScript(pipe,[bk('control_start_as_clone'),bk('looks_setsize',{SZ:80}),bk('motion_gotoxy',{X:240,Y:bk('operator_random',{FROM:-120,TO:120})}),bk('looks_show'),
+     bk('control_repeat_until',{COND:LT(bk('motion_xposition'),-240),SUBSTACK:[bk('motion_changexby',{DX:-4})]}),bk('data_changevariableby',{VAL:1},{VAR:score.name}),bk('control_delete_clone')],'game_flappy','scroll');
+   I.addScript(p,[bk('event_whenbroadcast',null,{MSG:over}),bk('looks_say',{MSG:'Game Over!'}),bk('control_stop',null,{OPT:'all'})],'game_flappy','over');
+   I.notes.push('Press SPACE to flap and fly through the gaps. Don’t hit the pipes!');}},
+
+{id:'game_chase',name:'Chase Escape',cat:'Full Games',icon:'👻',color:'#ff5a5f',difficulty:'Complete game',
+ tags:['maze','chase','coins','full game'],full:true,
+ apply(I){const p=I.target;runSub('topdown',I,{speed:5});runSub('coins',I,{count:10,player:p.name});
+   runSub('chaser',I,{player:p.name,speed:2});const hp=I.ensureVar('lives');hp.value=3;hp.monitor=true;const over=I.ensureMessage('caught');
+   I.addScript(p,[flag(),bk('data_setvariableto',{VAL:3},{VAR:hp.name}),bk('control_forever',{SUBSTACK:[
+     bk('control_if',{COND:TOUCH('Chaser'),SUBSTACK:[bk('data_changevariableby',{VAL:-1},{VAR:hp.name}),bk('motion_gotoxy',{X:0,Y:0}),bk('control_wait',{SECS:0.5}),
+       bk('control_if',{COND:LT(V(hp.name),1),SUBSTACK:[bk('looks_say',{MSG:'Caught!'}),bk('control_stop',null,{OPT:'all'})]})]})]})],'game_chase','danger');
+   I.notes.push('Collect coins while dodging the chaser — 3 lives!');}},
+
+{id:'game_surprise',name:'Surprise Me!',cat:'Full Games',icon:'🎲',color:'#ff5a5f',difficulty:'Random game',
+ tags:['random','surprise','full game'],full:true,
+ apply(I){const games=['game_platformer','game_collector','game_dodge','game_whack','game_flappy','game_chase'];
+   const pick=games[Math.floor(Math.random()*games.length)];const b=BUILDS.find(x=>x.id===pick);
+   b.apply(I);I.notes.unshift('🎲 Built a random game: '+b.name+'!');}},
+
+/* ---------- STARTERS / GAMES ---------- */
+{id:'platformer',name:'Platformer Physics',cat:'Games',icon:'🏃',color:'#4c97ff',difficulty:'Medium',
+ tags:['gravity','jump','player'],needsSprite:true,
+ config:[{k:'speed',label:'Move speed',type:'num',d:6},{k:'jump',label:'Jump strength',type:'num',d:12},{k:'gravity',label:'Gravity',type:'num',d:1},{k:'floor',label:'Ground y',type:'num',d:-140}],
+ apply(I){const s=I.target;const vy=I.ensureVar('vy','local',0);
+   I.addScript(s,[flag(),bk('motion_gotoxy',{X:0,Y:I.cfg.floor}),bk('data_setvariableto',{VAL:0},{VAR:vy.name}),
+     bk('control_forever',{SUBSTACK:[
+       bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_changexby',{DX:I.cfg.speed}),bk('motion_pointindirection',{DIR:90})]}),
+       bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_changexby',{DX:-I.cfg.speed}),bk('motion_pointindirection',{DIR:-90})]}),
+       bk('data_changevariableby',{VAL:bk('operator_subtract',{A:0,B:I.cfg.gravity})},{VAR:vy.name}),
+       bk('motion_changeyby',{DY:V(vy.name)}),
+       bk('control_if',{COND:LT(bk('motion_yposition'),I.cfg.floor),SUBSTACK:[bk('motion_sety',{Y:I.cfg.floor}),bk('data_setvariableto',{VAL:0},{VAR:vy.name})]}),
+       bk('control_if',{COND:AND(KEYD('up arrow'),EQ(bk('motion_yposition'),I.cfg.floor)),SUBSTACK:[bk('data_setvariableto',{VAL:I.cfg.jump},{VAR:vy.name})]})
+     ]})
+   ],'platformer','main');
+   s.rotationStyle='left-right';}},
+
+{id:'topdown',name:'Top-Down Movement',cat:'Games',icon:'🎮',color:'#4c97ff',difficulty:'Easy',tags:['wasd','player','movement'],needsSprite:true,
+ config:[{k:'speed',label:'Speed',type:'num',d:4}],
+ apply(I){const s=I.target;I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+   bk('control_if',{COND:bk('operator_or',{A:KEYD('up arrow'),B:KEYD('w')}),SUBSTACK:[bk('motion_changeyby',{DY:I.cfg.speed})]}),
+   bk('control_if',{COND:bk('operator_or',{A:KEYD('down arrow'),B:KEYD('s')}),SUBSTACK:[bk('motion_changeyby',{DY:-I.cfg.speed})]}),
+   bk('control_if',{COND:bk('operator_or',{A:KEYD('left arrow'),B:KEYD('a')}),SUBSTACK:[bk('motion_changexby',{DX:-I.cfg.speed})]}),
+   bk('control_if',{COND:bk('operator_or',{A:KEYD('right arrow'),B:KEYD('d')}),SUBSTACK:[bk('motion_changexby',{DX:I.cfg.speed})]})
+ ]})],'topdown','main');}},
+
+{id:'clicker',name:'Clicker Game',cat:'Games',icon:'👆',color:'#4c97ff',difficulty:'Easy',tags:['click','score'],needsSprite:true,
+ apply(I){const s=I.target;const score=I.ensureVar('score');
+   I.addScript(s,[bk('event_whenthisspriteclicked'),bk('data_changevariableby',{VAL:1},{VAR:score.name}),
+     bk('looks_changesize',{DS:10}),bk('control_wait',{SECS:0.05}),bk('looks_changesize',{DS:-10})],'clicker','main');}},
+
+{id:'racing',name:'Racing Car',cat:'Games',icon:'🏎️',color:'#4c97ff',difficulty:'Medium',tags:['car','turn','drive'],needsSprite:true,
+ config:[{k:'accel',label:'Speed',type:'num',d:5},{k:'turn',label:'Turn rate',type:'num',d:6}],
+ apply(I){const s=I.target;s.rotationStyle='all around';
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('control_if',{COND:KEYD('up arrow'),SUBSTACK:[bk('motion_movesteps',{STEPS:I.cfg.accel})]}),
+     bk('control_if',{COND:KEYD('down arrow'),SUBSTACK:[bk('motion_movesteps',{STEPS:-I.cfg.accel})]}),
+     bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_turnleft',{DEG:I.cfg.turn})]}),
+     bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_turnright',{DEG:I.cfg.turn})]}),
+     bk('motion_ifonedge')
+   ]})],'racing','main');}},
+
+{id:'shooter',name:'Arcade Shooter',cat:'Games',icon:'🚀',color:'#4c97ff',difficulty:'Medium',tags:['bullets','clones','space'],needsSprite:true,
+ apply(I){const bullet=I.ensureSprite('Bullet','•');
+   I.addScript(I.target,[bk('event_whenkeypressed',null,{KEY:'space'}),bk('control_create_clone',null,{OF:bullet.name})],'shooter','spawn');
+   I.addScript(bullet,[bk('control_start_as_clone'),bk('looks_setsize',{SZ:40}),bk('looks_show'),
+     bk('motion_goto',null,{TO:I.target.name}),
+     bk('control_repeat_until',{COND:bk('sensing_touching',null,{OBJ:'_edge_'}),SUBSTACK:[bk('motion_changeyby',{DY:10})]}),
+     bk('control_delete_clone')],'shooter','fly');
+   I.addScript(bullet,[flag(),bk('looks_hide')],'shooter','hide');}},
+
+{id:'story',name:'Story Scene',cat:'Games',icon:'📖',color:'#4c97ff',difficulty:'Easy',tags:['dialogue','story'],needsSprite:true,
+ apply(I){I.addScript(I.target,[flag(),bk('looks_sayforsecs',{MSG:'Once upon a time…',SECS:2}),
+   bk('looks_sayforsecs',{MSG:'a hero began their quest.',SECS:2}),bk('looks_say',{MSG:'Press ▶ to play!'})],'story','main');}},
+
+/* ---------- PLAYER SYSTEMS ---------- */
+{id:'walk',name:'Left/Right Walk',cat:'Player',icon:'🚶',color:'#9966ff',difficulty:'Easy',tags:['move','animation'],needsSprite:true,
+ config:[{k:'speed',label:'Speed',type:'num',d:5}],
+ apply(I){const s=I.target;s.rotationStyle='left-right';
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_pointindirection',{DIR:90}),bk('motion_movesteps',{STEPS:I.cfg.speed}),bk('looks_nextcostume')]}),
+     bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_pointindirection',{DIR:-90}),bk('motion_movesteps',{STEPS:I.cfg.speed}),bk('looks_nextcostume')]})
+   ]})],'walk','main');}},
+
+{id:'jump',name:'Jump',cat:'Player',icon:'⬆️',color:'#9966ff',difficulty:'Easy',tags:['jump'],needsSprite:true,
+ config:[{k:'power',label:'Jump height',type:'num',d:80},{k:'floor',label:'Ground y',type:'num',d:-120}],
+ apply(I){const s=I.target;I.addScript(s,[bk('event_whenkeypressed',null,{KEY:'space'}),
+   bk('control_repeat',{TIMES:10,SUBSTACK:[bk('motion_changeyby',{DY:bk('operator_divide',{A:I.cfg.power,B:10})})]}),
+   bk('control_repeat',{TIMES:10,SUBSTACK:[bk('motion_changeyby',{DY:bk('operator_divide',{A:-I.cfg.power,B:10})})]}),
+   bk('motion_sety',{Y:I.cfg.floor})],'jump','main');}},
+
+{id:'doublejump',name:'Double Jump',cat:'Player',icon:'🪽',color:'#9966ff',difficulty:'Medium',tags:['jump','gravity'],needsSprite:true,
+ apply(I){const s=I.target;const vy=I.ensureVar('vy','local',0);const jumps=I.ensureVar('jumps','local',0);
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('data_changevariableby',{VAL:-1},{VAR:vy.name}),bk('motion_changeyby',{DY:V(vy.name)}),
+     bk('control_if',{COND:LT(bk('motion_yposition'),-120),SUBSTACK:[bk('motion_sety',{Y:-120}),bk('data_setvariableto',{VAL:0},{VAR:vy.name}),bk('data_setvariableto',{VAL:2},{VAR:jumps.name})]})
+   ]})],'doublejump','physics');
+   I.addScript(s,[bk('event_whenkeypressed',null,{KEY:'up arrow'}),
+     bk('control_if',{COND:GT(V(jumps.name),0),SUBSTACK:[bk('data_setvariableto',{VAL:11},{VAR:vy.name}),bk('data_changevariableby',{VAL:-1},{VAR:jumps.name})]})],'doublejump','jump');}},
+
+{id:'dash',name:'Dash',cat:'Player',icon:'💨',color:'#9966ff',difficulty:'Medium',tags:['dash','speed'],needsSprite:true,
+ apply(I){I.addScript(I.target,[bk('event_whenkeypressed',null,{KEY:'shift'}),
+   bk('control_repeat',{TIMES:6,SUBSTACK:[bk('motion_movesteps',{STEPS:15}),bk('looks_changeeffect',{V:25},{EF:'ghost'})]}),
+   bk('looks_cleareffects')],'dash','main');}},
+
+{id:'health',name:'Health System',cat:'Player',icon:'❤️',color:'#9966ff',difficulty:'Easy',tags:['health','damage'],needsSprite:true,
+ config:[{k:'max',label:'Max health',type:'num',d:100},{k:'enemy',label:'Damaged by',type:'sprite'}],
+ apply(I){const s=I.target;const hp=I.ensureVar('health');hp.value=I.cfg.max;hp.monitor=true;const gm=I.ensureMessage('game over');
+   I.addScript(s,[flag(),bk('data_setvariableto',{VAL:I.cfg.max},{VAR:hp.name}),bk('data_showvariable',null,{VAR:hp.name})],'health','init');
+   const enemy=I.cfg.enemy&&I.cfg.enemy!=='(none)'?I.cfg.enemy:'_edge_';
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('control_if',{COND:TOUCH(enemy),SUBSTACK:[bk('data_changevariableby',{VAL:-1},{VAR:hp.name}),
+       bk('control_if',{COND:LT(V(hp.name),1),SUBSTACK:[bk('event_broadcast',null,{MSG:gm})]}),bk('control_wait',{SECS:0.3})]})
+   ]})],'health','damage');
+   I.addScript(s,[bk('event_whenbroadcast',null,{MSG:gm}),bk('looks_say',{MSG:'Game Over!'}),bk('control_stop',null,{OPT:'all'})],'health','over');}},
+
+{id:'lives',name:'Lives',cat:'Player',icon:'🩶',color:'#9966ff',difficulty:'Easy',tags:['lives','respawn'],needsSprite:true,
+ config:[{k:'count',label:'Starting lives',type:'num',d:3}],
+ apply(I){const s=I.target;const lv=I.ensureVar('lives');lv.value=I.cfg.count;lv.monitor=true;const lose=I.ensureMessage('lose life');
+   I.addScript(s,[flag(),bk('data_setvariableto',{VAL:I.cfg.count},{VAR:lv.name})],'lives','init');
+   I.addScript(s,[bk('event_whenbroadcast',null,{MSG:lose}),bk('data_changevariableby',{VAL:-1},{VAR:lv.name}),
+     bk('motion_gotoxy',{X:0,Y:0}),bk('control_if',{COND:LT(V(lv.name),1),SUBSTACK:[bk('looks_say',{MSG:'Game Over'}),bk('control_stop',null,{OPT:'all'})]})],'lives','lose');}},
+
+{id:'platformcollision',name:'Platform Collision',cat:'Player',icon:'🧱',color:'#9966ff',difficulty:'Medium',
+ tags:['collision','platform','gravity'],needsSprite:true,
+ config:[{k:'speed',label:'Move speed',type:'num',d:5},{k:'jump',label:'Jump strength',type:'num',d:13},{k:'gravity',label:'Gravity',type:'num',d:1},{k:'floor',label:'Ground y',type:'num',d:-150}],
+ apply(I){const s=I.target;const vy=I.ensureVar('vy','local',0);
+   const plat=I.ensureSprite('Platform','🟩',[{name:'plat',render:'platform'}]);
+   I.addScript(plat,[flag(),bk('looks_hide'),bk('control_create_clone',null,{OF:'_myself_'}),bk('control_create_clone',null,{OF:'_myself_'}),bk('control_create_clone',null,{OF:'_myself_'})],'platformcollision','spawn');
+   I.addScript(plat,[bk('control_start_as_clone'),bk('looks_show'),bk('motion_gotoxy',{X:bk('operator_random',{FROM:-180,TO:180}),Y:bk('operator_random',{FROM:-90,TO:70})})],'platformcollision','place');
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_changexby',{DX:I.cfg.speed}),bk('motion_pointindirection',{DIR:90})]}),
+     bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_changexby',{DX:-I.cfg.speed}),bk('motion_pointindirection',{DIR:-90})]}),
+     bk('data_changevariableby',{VAL:-I.cfg.gravity},{VAR:vy.name}),
+     bk('motion_changeyby',{DY:V(vy.name)}),
+     bk('control_if',{COND:AND(LT(V(vy.name),1),TOUCH(plat.name)),SUBSTACK:[
+       bk('control_repeat',{TIMES:14,SUBSTACK:[bk('control_if',{COND:TOUCH(plat.name),SUBSTACK:[bk('motion_changeyby',{DY:1})]})]}),
+       bk('data_setvariableto',{VAL:0},{VAR:vy.name})]}),
+     bk('control_if',{COND:LT(bk('motion_yposition'),I.cfg.floor),SUBSTACK:[bk('motion_sety',{Y:I.cfg.floor}),bk('data_setvariableto',{VAL:0},{VAR:vy.name})]}),
+     bk('control_if',{COND:AND(KEYD('up arrow'),bk('operator_or',{A:TOUCH(plat.name),B:EQ(bk('motion_yposition'),I.cfg.floor)})),SUBSTACK:[bk('data_setvariableto',{VAL:I.cfg.jump},{VAR:vy.name})]})
+   ]})],'platformcollision','physics');
+   s.rotationStyle='left-right';
+   I.notes.push('Player falls onto green Platform tiles and the ground; ↑ to jump.');}},
+
+{id:'solidwall',name:'Solid Walls',cat:'Systems',icon:'🚧',color:'#ffab19',difficulty:'Medium',
+ tags:['collision','wall','solid'],needsSprite:true,
+ config:[{k:'wall',label:'Solid sprite',type:'sprite'},{k:'speed',label:'Move speed',type:'num',d:4}],
+ apply(I){const s=I.target;const px=I.ensureVar('prev x','local',0),py=I.ensureVar('prev y','local',0);const wall=I.cfg.wall&&I.cfg.wall!=='(none)'?I.cfg.wall:I.ensureSprite('Wall','🧱').name;
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[
+     bk('data_setvariableto',{VAL:bk('motion_xposition')},{VAR:px.name}),
+     bk('data_setvariableto',{VAL:bk('motion_yposition')},{VAR:py.name}),
+     bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_changexby',{DX:I.cfg.speed})]}),
+     bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_changexby',{DX:-I.cfg.speed})]}),
+     bk('control_if',{COND:KEYD('up arrow'),SUBSTACK:[bk('motion_changeyby',{DY:I.cfg.speed})]}),
+     bk('control_if',{COND:KEYD('down arrow'),SUBSTACK:[bk('motion_changeyby',{DY:-I.cfg.speed})]}),
+     bk('control_if',{COND:TOUCH(wall),SUBSTACK:[bk('motion_gotoxy',{X:V(px.name),Y:V(py.name)})]})
+   ]})],'solidwall','main');
+   I.notes.push('Sprite is blocked from passing through the solid sprite.');}},
+
+/* ---------- GAME SYSTEMS ---------- */
+{id:'coins',name:'Coin Collector',cat:'Systems',icon:'🪙',color:'#ffab19',difficulty:'Easy',tags:['coins','score','clones'],
+ config:[{k:'count',label:'How many coins',type:'num',d:6},{k:'player',label:'Collected by',type:'sprite'}],
+ apply(I){const score=I.ensureVar('score');score.monitor=true;const coin=I.ensureSprite('Coin','🪙');const player=I.cfg.player||I.target.name;
+   I.addScript(coin,[flag(),bk('looks_hide'),bk('control_repeat',{TIMES:I.cfg.count,SUBSTACK:[bk('control_create_clone',null,{OF:'_myself_'})]})],'coins','spawn');
+   I.addScript(coin,[bk('control_start_as_clone'),bk('motion_gotoxy',{X:bk('operator_random',{FROM:-210,TO:210}),Y:bk('operator_random',{FROM:-150,TO:150})}),bk('looks_show'),
+     bk('control_wait_until',{COND:TOUCH(player)}),bk('data_changevariableby',{VAL:1},{VAR:score.name}),bk('control_delete_clone')],'coins','collect');}},
+
+{id:'score',name:'Score',cat:'Systems',icon:'🎯',color:'#ffab19',difficulty:'Easy',tags:['score','points'],
+ apply(I){const score=I.ensureVar('score');score.value=0;score.monitor=true;
+   I.addScript(PROJ.stage,[flag(),bk('data_setvariableto',{VAL:0},{VAR:score.name}),bk('data_showvariable',null,{VAR:score.name})],'score','init');
+   I.notes.push('Use “change score by 1” anywhere to add points.');}},
+
+{id:'timer',name:'Countdown Timer',cat:'Systems',icon:'⏱️',color:'#ffab19',difficulty:'Easy',tags:['timer','countdown'],
+ config:[{k:'secs',label:'Seconds',type:'num',d:30}],
+ apply(I){const t=I.ensureVar('time');t.value=I.cfg.secs;t.monitor=true;const up=I.ensureMessage('time up');
+   I.addScript(PROJ.stage,[flag(),bk('data_setvariableto',{VAL:I.cfg.secs},{VAR:t.name}),bk('data_showvariable',null,{VAR:t.name}),
+     bk('control_repeat_until',{COND:LT(V(t.name),1),SUBSTACK:[bk('control_wait',{SECS:1}),bk('data_changevariableby',{VAL:-1},{VAR:t.name})]}),
+     bk('event_broadcast',null,{MSG:up})],'timer','count');}},
+
+{id:'checkpoint',name:'Checkpoint',cat:'Systems',icon:'🚩',color:'#ffab19',difficulty:'Medium',tags:['checkpoint','respawn'],needsSprite:true,
+ apply(I){const s=I.target;const cx=I.ensureVar('spawn x','local',0),cy=I.ensureVar('spawn y','local',0);const flagS=I.ensureSprite('Checkpoint','🚩');
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[bk('control_if',{COND:TOUCH(flagS.name),SUBSTACK:[
+     bk('data_setvariableto',{VAL:bk('motion_xposition')},{VAR:cx.name}),bk('data_setvariableto',{VAL:bk('motion_yposition')},{VAR:cy.name})]})]})],'checkpoint','set');
+   I.notes.push('Broadcast or go to (spawn x, spawn y) to respawn at the checkpoint.');}},
+
+{id:'levels',name:'Levels',cat:'Systems',icon:'🗺️',color:'#ffab19',difficulty:'Medium',tags:['level','progress'],
+ apply(I){const lvl=I.ensureVar('level');lvl.value=1;lvl.monitor=true;const nx=I.ensureMessage('next level');
+   I.addScript(PROJ.stage,[flag(),bk('data_setvariableto',{VAL:1},{VAR:lvl.name})],'levels','init');
+   I.addScript(PROJ.stage,[bk('event_whenbroadcast',null,{MSG:nx}),bk('data_changevariableby',{VAL:1},{VAR:lvl.name}),
+     bk('looks_nextbackdrop')],'levels','advance');}},
+
+{id:'inventory',name:'Inventory',cat:'Systems',icon:'🎒',color:'#ffab19',difficulty:'Medium',tags:['list','items'],
+ apply(I){const inv=I.ensureList('inventory');inv.visible=true;const add=I.ensureMessage('pick up item');
+   I.addScript(PROJ.stage,[bk('event_whenbroadcast',null,{MSG:add}),bk('data_addtolist',{ITEM:'apple'},{LIST:inv.name})],'inventory','add');
+   I.notes.push('Broadcast “pick up item” to add to the inventory list.');}},
+
+{id:'shop',name:'Simple Shop',cat:'Systems',icon:'🛒',color:'#ffab19',difficulty:'Hard',tags:['coins','buy'],needsSprite:true,
+ apply(I){const coins=I.ensureVar('coins');coins.value=10;coins.monitor=true;
+   I.addScript(I.target,[bk('event_whenthisspriteclicked'),bk('control_if_else',{COND:GT(V(coins.name),4),
+     SUBSTACK:[bk('data_changevariableby',{VAL:-5},{VAR:coins.name}),bk('looks_say',{MSG:'Purchased!'})],
+     SUBSTACK2:[bk('looks_sayforsecs',{MSG:'Not enough coins',SECS:1})]})],'shop','buy');}},
+
+{id:'save',name:'Save Best Score',cat:'Systems',icon:'💾',color:'#ffab19',difficulty:'Medium',tags:['save','highscore'],
+ apply(I){const score=I.ensureVar('score');const best=I.ensureVar('best score');best.monitor=true;const sv=I.ensureMessage('save');
+   I.addScript(PROJ.stage,[bk('event_whenbroadcast',null,{MSG:sv}),bk('control_if',{COND:GT(V(score.name),V(best.name)),
+     SUBSTACK:[bk('data_setvariableto',{VAL:V(score.name)},{VAR:best.name})]})],'save','main');
+   I.notes.push('Best score persists via autosave. Broadcast “save” to record it.');}},
+
+/* ---------- ENEMIES ---------- */
+{id:'enemy',name:'Basic Enemy',cat:'Enemies',icon:'👾',color:'#ff661a',difficulty:'Easy',tags:['enemy'],
+ config:[{k:'player',label:'Attacks',type:'sprite'}],
+ apply(I){const e=I.ensureSprite('Enemy','👾');const hit=I.ensureMessage('lose life');const player=I.cfg.player||currentSprite().name;
+   I.addScript(e,[flag(),bk('control_forever',{SUBSTACK:[bk('motion_movesteps',{STEPS:3}),bk('motion_ifonedge'),
+     bk('control_if',{COND:TOUCH(player),SUBSTACK:[bk('event_broadcast',null,{MSG:hit})]})]})],'enemy','main');}},
+
+{id:'patrol',name:'Patrol Enemy',cat:'Enemies',icon:'🚔',color:'#ff661a',difficulty:'Medium',tags:['enemy','patrol'],
+ apply(I){const e=I.ensureSprite('Guard','🤖');e.rotationStyle='left-right';
+   I.addScript(e,[flag(),bk('control_forever',{SUBSTACK:[bk('motion_movesteps',{STEPS:3}),
+     bk('control_if',{COND:bk('sensing_touching',null,{OBJ:'_edge_'}),SUBSTACK:[bk('motion_turnright',{DEG:180})]})]})],'patrol','main');}},
+
+{id:'chaser',name:'Chasing Enemy',cat:'Enemies',icon:'🧟',color:'#ff661a',difficulty:'Medium',tags:['enemy','chase','ai'],
+ config:[{k:'player',label:'Chases',type:'sprite'},{k:'speed',label:'Speed',type:'num',d:2}],
+ apply(I){const e=I.ensureSprite('Chaser','🧟');const player=I.cfg.player||currentSprite().name;
+   I.addScript(e,[flag(),bk('control_forever',{SUBSTACK:[bk('motion_pointtowards',null,{TO:player}),bk('motion_movesteps',{STEPS:I.cfg.speed})]})],'chaser','main');}},
+
+{id:'damage',name:'Damage + I-Frames',cat:'Enemies',icon:'⚡',color:'#ff661a',difficulty:'Hard',tags:['damage','invincible'],needsSprite:true,
+ config:[{k:'enemy',label:'Enemy',type:'sprite'}],
+ apply(I){const s=I.target;const hp=I.ensureVar('health');const enemy=I.cfg.enemy||'Enemy';
+   I.addScript(s,[flag(),bk('control_forever',{SUBSTACK:[bk('control_if',{COND:TOUCH(enemy),SUBSTACK:[
+     bk('data_changevariableby',{VAL:-10},{VAR:hp.name}),bk('control_repeat',{TIMES:4,SUBSTACK:[bk('looks_seteffect',{V:50},{EF:'ghost'}),bk('control_wait',{SECS:0.1}),bk('looks_seteffect',{V:0},{EF:'ghost'}),bk('control_wait',{SECS:0.1})]})]})]})],'damage','main');}},
+
+/* ---------- UI ---------- */
+{id:'startmenu',name:'Start Menu',cat:'UI',icon:'🎬',color:'#5cb1d6',difficulty:'Easy',tags:['menu','start'],
+ apply(I){const started=I.ensureMessage('start game');
+   I.addScript(PROJ.stage,[flag(),bk('looks_switchbackdrop',null,{BD:PROJ.stage.costumes[0].name})],'startmenu','bd');
+   I.addScript(I.target,[flag(),bk('looks_say',{MSG:'Press SPACE to start'})],'startmenu','prompt');
+   I.addScript(I.target,[bk('event_whenkeypressed',null,{KEY:'space'}),bk('looks_say',{MSG:''}),bk('event_broadcast',null,{MSG:started})],'startmenu','go');}},
+
+{id:'pause',name:'Pause Menu',cat:'UI',icon:'⏸️',color:'#5cb1d6',difficulty:'Medium',tags:['pause'],
+ apply(I){const p=I.ensureVar('paused');
+   I.addScript(PROJ.stage,[bk('event_whenkeypressed',null,{KEY:'p'}),bk('control_if_else',{COND:EQ(V(p.name),0),
+     SUBSTACK:[bk('data_setvariableto',{VAL:1},{VAR:p.name})],SUBSTACK2:[bk('data_setvariableto',{VAL:0},{VAR:p.name})]})],'pause','toggle');
+   I.notes.push('Wrap game loops in: if <paused = 0> … to respect pausing.');}},
+
+{id:'healthbar',name:'Health Bar',cat:'UI',icon:'🟩',color:'#5cb1d6',difficulty:'Medium',tags:['health','bar'],
+ apply(I){const hp=I.ensureVar('health');const bar=I.ensureSprite('HealthBar','🟩');
+   I.addScript(bar,[flag(),bk('motion_gotoxy',{X:-150,Y:150}),bk('control_forever',{SUBSTACK:[
+     bk('looks_setsize',{SZ:bk('operator_add',{A:20,B:V(hp.name)})})]})],'healthbar','main');}},
+
+{id:'dialogue',name:'Dialogue Box',cat:'UI',icon:'💬',color:'#5cb1d6',difficulty:'Easy',tags:['dialogue','text'],needsSprite:true,
+ apply(I){I.addScript(I.target,[bk('event_whenthisspriteclicked'),bk('looks_sayforsecs',{MSG:'Hello, traveler!',SECS:2}),
+   bk('looks_sayforsecs',{MSG:'Welcome to my world.',SECS:2}),bk('looks_say',{MSG:''})],'dialogue','main');}},
+
+/* ---------- EFFECTS ---------- */
+{id:'shake',name:'Screen Shake',cat:'Effects',icon:'📳',color:'#59c059',difficulty:'Easy',tags:['juice','shake'],needsSprite:true,
+ apply(I){const shake=I.ensureMessage('shake');
+   I.addScript(I.target,[bk('event_whenbroadcast',null,{MSG:shake}),bk('control_repeat',{TIMES:8,SUBSTACK:[
+     bk('motion_changexby',{DX:bk('operator_random',{FROM:-8,TO:8})}),bk('motion_changeyby',{DY:bk('operator_random',{FROM:-8,TO:8})}),bk('control_wait',{SECS:0.02})]})],'shake','main');
+   I.notes.push('Broadcast “shake” for a quick screen-shake.');}},
+
+{id:'particles',name:'Particle Burst',cat:'Effects',icon:'✨',color:'#59c059',difficulty:'Medium',tags:['particles','clones'],
+ apply(I){const p=I.ensureSprite('Particle','✨');const burst=I.ensureMessage('burst');
+   I.addScript(p,[flag(),bk('looks_hide')],'particles','hide');
+   I.addScript(p,[bk('event_whenbroadcast',null,{MSG:burst}),bk('control_repeat',{TIMES:12,SUBSTACK:[bk('control_create_clone',null,{OF:'_myself_'})]})],'particles','spawn');
+   I.addScript(p,[bk('control_start_as_clone'),bk('looks_show'),bk('motion_pointindirection',{DIR:bk('operator_random',{FROM:-180,TO:180})}),
+     bk('control_repeat',{TIMES:12,SUBSTACK:[bk('motion_movesteps',{STEPS:8}),bk('looks_changeeffect',{V:10},{EF:'ghost'})]}),bk('control_delete_clone')],'particles','fly');
+   I.notes.push('Broadcast “burst” to emit particles from the Particle sprite.');}},
+
+{id:'flash',name:'Flash Effect',cat:'Effects',icon:'⚡',color:'#59c059',difficulty:'Easy',tags:['flash','hit'],needsSprite:true,
+ apply(I){const fl=I.ensureMessage('flash');
+   I.addScript(I.target,[bk('event_whenbroadcast',null,{MSG:fl}),bk('control_repeat',{TIMES:3,SUBSTACK:[
+     bk('looks_seteffect',{V:100},{EF:'brightness'}),bk('control_wait',{SECS:0.05}),bk('looks_seteffect',{V:0},{EF:'brightness'}),bk('control_wait',{SECS:0.05})]})],'flash','main');}},
+
+{id:'anim',name:'Costume Animation',cat:'Effects',icon:'🎞️',color:'#59c059',difficulty:'Easy',tags:['animation','costume'],needsSprite:true,
+ config:[{k:'speed',label:'Frame delay (s)',type:'num',d:0.15}],
+ apply(I){I.addScript(I.target,[flag(),bk('control_forever',{SUBSTACK:[bk('looks_nextcostume'),bk('control_wait',{SECS:I.cfg.speed})]})],'anim','main');}}
+];
+
+/* MY BUILDS (saved by user) load from storage */
+let MYBUILDS=[];
+try{MYBUILDS=JSON.parse(LS.get('bloq.mybuilds')||'[]');}catch(e){}
+function saveMyBuild(){const name=prompt('Name this Build (saves the current sprite’s scripts + its variables):','My System');if(!name)return;
+  const s=currentSprite();const b={id:'my_'+uid(),name,cat:'My Builds',icon:'⭐',color:'#ff6680',difficulty:'—',tags:['mine'],mine:true,
+    data:{scripts:JSON.parse(JSON.stringify(s.scripts)),vars:s.variables.map(v=>({name:v.name,value:v.value}))}};
+  MYBUILDS.push(b);LS.set('bloq.mybuilds',JSON.stringify(MYBUILDS));toast('Saved “'+name+'” to My Builds');renderBuilds();}
+function applyMyBuild(b,I){b.data.vars.forEach(v=>I.ensureVar(v.name,'local',v.value));
+  b.data.scripts.forEach(scr=>{const copy=JSON.parse(JSON.stringify(scr.stack),(k,v)=>k==='id'?uid():v);I.addScript(I.target,copy,b.id,uid());});}
+
+/* ======================= BUILDS UI ==================================== */
+let BUILD_FILTER='Full Games';
+function allBuilds(){return [...BUILDS,...MYBUILDS];}
+function openBuilds(){renderBuilds();openOverlay('buildsOverlay');}
+function renderBuilds(){
+  const cats=['Full Games','All','Games','Player','Systems','Enemies','UI','Effects',...(MYBUILDS.length?['My Builds']:[])];
+  const f=$('#buildsFilter');f.innerHTML='';
+  cats.forEach(c=>{const b=document.createElement('button');b.className='chip'+(c===BUILD_FILTER?' on':'');b.textContent=c;b.onclick=()=>{BUILD_FILTER=c;renderBuilds();};f.appendChild(b);});
+  const save=document.createElement('button');save.className='chip';save.style.marginLeft='auto';save.textContent='⭐ Save current as Build';save.onclick=saveMyBuild;f.appendChild(save);
+  const grid=$('#buildsGrid');grid.innerHTML='';
+  allBuilds().filter(b=>BUILD_FILTER==='All'||b.cat===BUILD_FILTER).forEach(b=>grid.appendChild(buildCard(b)));
+}
+function buildCard(b){const card=document.createElement('div');card.className='build-card';
+  card.innerHTML=`<div class="build-prev" style="background:${hexA(b.color,0.16)};color:${b.color}"><span>${b.icon}</span><span class="diff">${b.difficulty}</span></div>
+    <div class="build-info"><h3>${escapeHtml(b.name)}</h3><p>${escapeHtml(b.desc||buildBlurb(b))}</p>
+    <div class="build-tags">${(b.tags||[]).map(t=>`<span>#${t}</span>`).join('')}</div>
+    <div class="build-actions"><button class="prev">Preview</button><button class="add">＋ Add to Project</button></div></div>`;
+  card.querySelector('.add').onclick=()=>startAdd(b);
+  card.querySelector('.prev').onclick=()=>previewBuild(b);
+  return card;}
+function buildBlurb(b){const map={
+  game_platformer:'A whole platformer: run, jump between platforms, and collect all 8 coins to win.',
+  game_collector:'Race the clock — grab as many coins as you can in 30 seconds.',
+  game_dodge:'Dodge falling rocks left and right; survive as long as you can.',
+  game_whack:'Moles pop up around the stage — click them fast before time runs out.',
+  game_flappy:'Tap SPACE to flap through scrolling pipes without crashing.',
+  game_chase:'Collect coins in a maze while a chaser hunts you — 3 lives.',
+  game_surprise:'Feeling lucky? Instantly builds one complete random game.',
+  platformer:'Gravity, walking and jumping with a solid floor — a full side-scroller base.',
+  platformcollision:'Gravity plus real landing on platform tiles and the ground, with jump.',
+  solidwall:'Blocks your sprite from walking through a chosen solid sprite.',
+  topdown:'Move in 4 directions with WASD or arrow keys.',clicker:'Click the sprite to score points with a bounce.',
+  health:'A health variable that drops on contact and ends the game at zero.',coins:'Scatters collectible coins that add to your score.',timer:'A countdown that broadcasts when time runs out.'};
+  return map[b.id]||('A ready-made '+b.cat.toLowerCase()+' system: '+(b.tags||[]).join(', ')+'.');}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* Preview: temporarily install into a scratch copy, run, then let user keep/undo */
+function previewBuild(b){toast('Previewing “'+b.name+'” — added & running. Undo (Ctrl+Z) to remove.');
+  doInstall(b,{},true);closeOverlay('buildsOverlay');setTimeout(()=>greenFlag(),150);}
+
+function startAdd(b){
+  const needSprite=b.needsSprite||(b.config||[]).some(c=>c.type==='sprite');
+  const cfg=(b.config||[]);
+  if(cfg.length){openConfig(b);}
+  else{doInstall(b,{});closeOverlay('buildsOverlay');}
+}
+function openConfig(b){
+  $('#cfgTitle').textContent='Configure — '+b.name;$('#cfgSub').textContent=b.desc||buildBlurb(b);
+  const body=$('#cfgBody');body.innerHTML='';
+  const sprites=PROJ.sprites.filter(s=>!s.isClone).map(s=>s.name);
+  (b.config||[]).forEach(c=>{
+    const row=document.createElement('div');row.className='cfg-row';
+    const left=document.createElement('div');left.innerHTML=`<div class="cl">${escapeHtml(c.label)}</div>`;
+    row.appendChild(left);let input;
+    if(c.type==='num'){input=document.createElement('input');input.type='number';input.value=c.d;}
+    else if(c.type==='toggle'){input=document.createElement('button');input.className='switch'+(c.d?' on':'');input.innerHTML='<b></b>';input.dataset.on=c.d?'1':'';input.onclick=()=>{input.classList.toggle('on');input.dataset.on=input.classList.contains('on')?'1':'';};}
+    else if(c.type==='sprite'){input=document.createElement('select');const opts=(b.needsSprite?[]:['(none)']).concat(sprites);opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;input.appendChild(op);});input.value=c.k==='player'||c.k==='enemy'?(sprites.find(x=>x!==currentSprite().name)||sprites[0]):currentSprite().name;}
+    else{input=document.createElement('input');input.type='text';input.value=c.d||'';}
+    input.dataset.k=c.k;input.dataset.type=c.type;row.appendChild(input);body.appendChild(row);
+  });
+  if(b.needsSprite){const row=document.createElement('div');row.className='cfg-row';
+    row.innerHTML='<div><div class="cl">Add to which sprite?</div><div class="cd">The build’s scripts go here</div></div>';
+    const sel=document.createElement('select');sel.id='cfgTarget';sprites.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;sel.appendChild(op);});sel.value=currentSprite().name;row.appendChild(sel);body.appendChild(row);}
+  $('#cfgAdd').onclick=()=>{const cfg={};$$('#cfgBody [data-k]').forEach(el=>{const t=el.dataset.type;cfg[el.dataset.k]=t==='num'?toNum(el.value):t==='toggle'?!!el.dataset.on:el.value;});
+    const tsel=$('#cfgTarget');const targetName=tsel?tsel.value:null;doInstall(b,cfg,false,targetName);closeOverlay('cfgOverlay');closeOverlay('buildsOverlay');};
+  openOverlay('cfgOverlay');
+}
+$('#cfgClose').onclick=$('#cfgCancel').onclick=()=>closeOverlay('cfgOverlay');
+
+function doInstall(b,cfg,isPreview,targetName){
+  pushUndo();
+  if(targetName){const s=PROJ.sprites.find(x=>x.name===targetName);if(s)PROJ.currentSprite=s.id;}
+  cfg=Object.assign({},defaultsFor(b),cfg);cfg.__target=b.needsSprite?currentSprite():currentSprite();
+  const I=makeInstaller(cfg);
+  try{ if(b.mine)applyMyBuild(b,I); else b.apply(I); }
+  catch(e){console.error(e);toast('Build error: '+e.message);return;}
+  fullRender();autosave();
+  const n=I.notes.length;toast('✓ '+b.name+' added'+(n?(' — '+I.notes[0]):''));
+  if(I.notes.length>1)setTimeout(()=>toast(I.notes.slice(1,3).join(' · ')),1400);
+}
+function defaultsFor(b){const o={};(b.config||[]).forEach(c=>o[c.k]=c.d);return o;}
+
+/* ======================= COMMAND PALETTE (Ctrl+K) ===================== */
+let cmdSel=0,cmdItems=[];
+function openCmd(){$('#cmdInput').value='';buildCmd('');openOverlay('cmdOverlay');setTimeout(()=>$('#cmdInput').focus(),30);}
+$('#cmdInput').addEventListener('input',e=>buildCmd(e.target.value));
+$('#cmdInput').addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'){e.preventDefault();cmdSel=Math.min(cmdItems.length-1,cmdSel+1);paintCmd();}
+  else if(e.key==='ArrowUp'){e.preventDefault();cmdSel=Math.max(0,cmdSel-1);paintCmd();}
+  else if(e.key==='Enter'){e.preventDefault();if(cmdItems[cmdSel])cmdItems[cmdSel].run();}
+});
+function buildCmd(q){
+  q=q.toLowerCase().trim();
+  const actions=[
+    {icon:'⚑',main:'Run project',sub:'Green flag',tag:'action',run:()=>{closeOverlay('cmdOverlay');greenFlag();}},
+    {icon:'⬛',main:'Stop everything',sub:'Halt all scripts',tag:'action',run:()=>{closeOverlay('cmdOverlay');stopEverything();}},
+    {icon:'✚',main:'Make a variable',sub:'New variable',tag:'action',run:()=>{closeOverlay('cmdOverlay');makeVariable();}},
+    {icon:'🐾',main:'Add a sprite',sub:'New sprite',tag:'action',run:()=>{closeOverlay('cmdOverlay');addSprite();}},
+    {icon:'✦',main:'Open Builds & Games',sub:'complete games and systems',tag:'action',run:()=>{closeOverlay('cmdOverlay');openBuilds();}},
+    {icon:'⬇',main:'Export project',sub:'Download .json',tag:'action',run:()=>{closeOverlay('cmdOverlay');exportProject();}}
+  ];
+  const buildItems=allBuilds().map(b=>({icon:b.icon,main:'Add '+b.name,sub:b.cat+' · '+(b.tags||[]).join(', '),tag:'build',
+    run:()=>{closeOverlay('cmdOverlay');startAdd(b);}}));
+  let all=[...actions,...buildItems];
+  if(q){all=all.filter(x=>(x.main+' '+x.sub).toLowerCase().includes(q));
+    // fuzzy verbs
+    if(q.includes('health'))all.unshift(cmdFor('health'));if(q.includes('platform'))all.unshift(cmdFor('platformer'));
+    if(q.includes('coin'))all.unshift(cmdFor('coins'));if(q.includes('move')||q.includes('movement'))all.unshift(cmdFor('walk'));
+    if(q.includes('enemy'))all.unshift(cmdFor('enemy'));if(q.includes('timer'))all.unshift(cmdFor('timer'));
+    all=dedupe(all);}
+  cmdItems=all.slice(0,10);cmdSel=0;paintCmd();
+}
+function cmdFor(id){const b=BUILDS.find(x=>x.id===id);return{icon:b.icon,main:'Add '+b.name,sub:b.cat+' · '+(b.tags||[]).join(', '),tag:'build',run:()=>{closeOverlay('cmdOverlay');startAdd(b);}};}
+function dedupe(arr){const seen=new Set();return arr.filter(x=>{if(seen.has(x.main))return false;seen.add(x.main);return true;});}
+function paintCmd(){const box=$('#cmdResults');box.innerHTML='';
+  if(!cmdItems.length){box.innerHTML='<div class="empty-note">No matches. Try “add coins” or “create a platformer”.</div>';return;}
+  cmdItems.forEach((it,i)=>{const d=document.createElement('div');d.className='res'+(i===cmdSel?' sel':'');
+    d.innerHTML=`<div class="r-ico">${it.icon}</div><div><div class="r-main">${escapeHtml(it.main)}</div><div class="r-sub">${escapeHtml(it.sub)}</div></div><div class="r-tag">${it.tag}</div>`;
+    d.onmouseenter=()=>{cmdSel=i;paintCmd();};d.onclick=()=>it.run();box.appendChild(d);});
+}
+
+/* ======================= SMART HELP =================================== */
+let helpDismissed=new Set();
+function maybeSmartHelp(){
+  if(MODE==='beginner'===false&&Math.random()>0.5)return; // low-frequency, non-intrusive
+  const s=currentSprite();const ops=new Set();collectOps(s.scripts,ops);
+  let sug=null;
+  const hasMove=[...ops].some(o=>o.startsWith('motion_move')||o==='motion_changexby'||o==='motion_changeyby');
+  const movementHat=[...ops].some(o=>o==='event_whenkeypressed'||o==='sensing_keypressed');
+  if(ops.size&&!hasMove&&!movementHat&&!helpDismissed.has('move'))sug={key:'move',title:'Add movement?',body:'Your sprite has scripts but can’t move yet.',build:'walk'};
+  else if(allVars(s).some(v=>/coin/i.test(v.name))&&!allVars(s).some(v=>/score/i.test(v.name))&&!helpDismissed.has('score'))sug={key:'score',title:'Track a score?',body:'You have coins but no score yet.',build:'score'};
+  else if(PROJ.sprites.some(x=>/enemy|chaser|guard/i.test(x.name))&&!allVars(s).some(v=>/health/i.test(v.name))&&!helpDismissed.has('health'))sug={key:'health',title:'Add health?',body:'There’s an enemy but the player has no health.',build:'health'};
+  const bubble=$('#helpBubble');
+  if(!sug){bubble.classList.remove('on');return;}
+  bubble.innerHTML=`<h4>${sug.title}</h4><p>${sug.body}</p><div class="ha"><button class="dismiss">Not now</button><button class="go">Add it</button></div>`;
+  bubble.querySelector('.go').onclick=()=>{bubble.classList.remove('on');const b=BUILDS.find(x=>x.id===sug.build);startAdd(b);};
+  bubble.querySelector('.dismiss').onclick=()=>{helpDismissed.add(sug.key);bubble.classList.remove('on');};
+  bubble.classList.add('on');
+}
+function collectOps(scripts,set){(scripts||[]).forEach(scr=>walkOps(scr.stack,set));}
+function walkOps(stack,set){stack.forEach(b=>{set.add(b.op);for(const k in b.inputs){const v=b.inputs[k];if(Array.isArray(v))walkOps(v,set);else if(v&&typeof v==='object'&&v.op)set.add(v.op);}});}
+
+/* ======================= DEMO PROJECT + INIT ========================== */
+function demoProject(){
+  const p=blankProject();const dog=p.sprites[0];
+  dog.x=-40;dog.y=-120;dog.rotationStyle='left-right';
+  const score={name:'score',value:0,visible:true,monitor:true};p.stage.variables.push(score);
+  dog.scripts=[
+    {id:uid('scr'),x:40,y:30,stack:[bk('event_whenflagclicked'),bk('motion_gotoxy',{X:-40,Y:-120}),bk('looks_sayforsecs',{MSG:'Use ← → to walk, ↑ to woof!',SECS:2})]},
+    {id:uid('scr'),x:40,y:210,stack:[bk('event_whenflagclicked'),bk('control_forever',{SUBSTACK:[
+      bk('control_if',{COND:KEYD('right arrow'),SUBSTACK:[bk('motion_pointindirection',{DIR:90}),bk('motion_movesteps',{STEPS:5}),bk('looks_nextcostume')]}),
+      bk('control_if',{COND:KEYD('left arrow'),SUBSTACK:[bk('motion_pointindirection',{DIR:-90}),bk('motion_movesteps',{STEPS:5}),bk('looks_nextcostume')]})
+    ]})]},
+    {id:uid('scr'),x:430,y:30,stack:[bk('event_whenkeypressed',null,{KEY:'up arrow'}),bk('looks_sayforsecs',{MSG:'Woof!',SECS:0.6}),bk('data_changevariableby',{VAL:1},{VAR:'score'})]}
+  ];
+  return p;
+}
+function init(){
+  const t=LS.get('bloq.theme');if(t)document.documentElement.setAttribute('data-theme',t);
+  if(!loadSaved()){PROJ=blankProject();}  // start empty — no demo game
+  normalizeProject();fullRender();renderStage();
+  // startup toast
+  setTimeout(()=>{try{toast('Tip: press Ctrl+K to search commands & games');}catch(_){}} ,700);
+}
+function boot(){try{init();}catch(e){console.error(e);try{showErr('startup failed: '+(e&&e.message||e));}catch(_){}
+  // last-ditch: at least try to draw the palette so the editor is usable
+  try{renderPalette();}catch(_){}}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+
+</script>
