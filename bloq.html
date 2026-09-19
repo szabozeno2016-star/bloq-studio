@@ -363,6 +363,7 @@ def('control_asclone',{c:'control',s:'hat',p:['when I start as clone'],hat:'clon
 def('control_delclone',{c:'control',s:'cap',p:['delete this clone'],*r(c){if(c.sp.clone){delClone(c.sp);c.stopT();}}});
 /* sensing */
 def('sensing_touch',{c:'sensing',s:'bool',p:['touching ',M('O','_edge_',()=>tgtMenu(1,0,1)),'?'],g:(c,b)=>touching(c.sp,c.field(b,'O'))});
+def('sensing_touchcolor',{c:'sensing',s:'bool',p:['touching color ',M('K','red',()=>Object.keys(COLMAP))],g:(c,b)=>touchColor(c.sp,COLMAP[c.field(b,'K')]||'#ff2b2b')});
 def('sensing_key',{c:'sensing',s:'bool',p:['key ',M('K','space',()=>KEYS),' down?'],g:(c,b)=>!!IO.keys[nk(c.field(b,'K'))]});
 def('sensing_mdown',{c:'sensing',s:'bool',p:['mouse down?'],g:()=>IO.md});
 def('sensing_mx',{c:'sensing',s:'rep',p:['mouse x'],g:()=>r2(IO.mx)});
@@ -451,6 +452,9 @@ const nk=k=>{k=(''+k).toLowerCase();return{space:' ','up arrow':'arrowup','down 
 function tgtMenu(mouse,me,edge){const a=[];if(edge)a.push('_edge_');if(mouse)a.push('_mouse_');if(me)a.push('_myself_');if(arguments.length&&mouse&&!me&&!edge)a.push('_random_');PROJ.sprites.forEach(s=>{if(!s.clone)a.push(s.name)});return a;}
 function tpt(f,rand){if(f==='_mouse_')return{x:IO.mx,y:IO.my};if(f==='_random_'||(rand&&f==='_random_'))return{x:rnd(-220,220),y:rnd(-160,160)};const s=PROJ.sprites.find(s=>s.name===f&&!s.clone)||PROJ.sprites.find(s=>s.name===f);return s?{x:s.x,y:s.y}:(f==='_random_'?{x:rnd(-220,220),y:rnd(-160,160)}:null);}
 function touching(s,o){if(o==='_edge_')return s.x<=-232||s.x>=232||s.y<=-172||s.y>=172;if(o==='_mouse_')return Math.abs(IO.mx-s.x)<s.size/100*20&&Math.abs(IO.my-s.y)<s.size/100*20;const hw=s.size/100*20;return PROJ.sprites.some(t=>{if(t.name!==o||t===s||!t.vis)return false;const thw=t.size/100*20;return Math.abs(t.x-s.x)<hw+thw&&Math.abs(t.y-s.y)<hw+thw;});}
+const COLMAP={red:'#ff2b2b',orange:'#ff9f1c',yellow:'#ffd23f',green:'#3fbf4f',blue:'#2b8fff',purple:'#9b5cff',pink:'#ff5a8a',black:'#111018',white:'#ffffff'};
+/* touching color: sample the rendered stage in the sprite's footprint for that colour (best-effort, not pixel-perfect) */
+function touchColor(s,hex){try{const cv=document.getElementById('stage');if(!cv)return false;const ctx=cv.getContext('2d');const p=scr(s.x,s.y),rad=Math.max(9,s.size/100*15);const x0=clamp(Math.round(p[0]-rad),0,cv.width-1),y0=clamp(Math.round(p[1]-rad),0,cv.height-1),w=clamp(Math.round(rad*2),1,cv.width-x0),h=clamp(Math.round(rad*2),1,cv.height-y0);const d=ctx.getImageData(x0,y0,w,h).data,tr=parseInt(hex.slice(1,3),16),tg=parseInt(hex.slice(3,5),16),tb=parseInt(hex.slice(5,7),16);for(let i=0;i<d.length;i+=4){if(d[i+3]<12)continue;if(Math.abs(d[i]-tr)<46&&Math.abs(d[i+1]-tg)<46&&Math.abs(d[i+2]-tb)<46)return true;}return false;}catch(e){return false;}}
 
 /* ---------- DATA MODEL ---------- */
 function newSprite(name,art,cos){return{id:uid('s'),name,x:0,y:0,dir:90,size:100,vis:1,rot:'all',cos:cos||[{name:'c1',art:art||'dog'}],cn:0,vol:100,ghost:0,fx:{},scripts:[],vars:[],lists:[],pen:{down:0,color:'#1a5cff',size:4},clone:0,bub:null};}
@@ -785,6 +789,16 @@ const BUILDS=[
      bk('control_if',{C:LT(bk('motion_xpos'),-235),SB:[bk('data_change',{N:1},{V:rt.name}),bk('sound_play',{F:440}),bk('motion_goxy',{X:0,Y:0}),bk('motion_point',{N:75}),bk('control_if',{C:GT(V(rt.name),4),SB:[bk('looks_say',{M:'RIGHT WINS! ▶ 🏆'}),bk('event_bcast',null,{M:ov})]})]})]})],'g_pong','ball');
    I.add(ball,[bk('event_recv',null,{M:ov}),bk('sound_note',{F:988,S:.5}),bk('control_stop',null,{O:'all'})],'g_pong','w');
    keepIn(I,p1);keepIn(I,p2);I.notes.push('Left: W/S vs Right: Up/Down. First to 5 points WINS!');}},
+ {id:'g_pong1',n:'Pong',cat:'Games',ic:'🏓',df:'Full game',tags:['pong','paddle','bounce','mouse'],full:1,ap(I){const pad=I.tgt;(pad.cos[0]||(pad.cos[0]={})).art='paddle';pad.rot='none';const ball=I.ensureSprite('Ball','ball');ball.rot='none';const sc=I.ensureVar('score',0);const ov=I.msg('game over');
+   I.add(pad,[flg(),bk('data_set',{N:0},{V:sc.name}),bk('control_forever',{SB:[bk('motion_sety',{N:-150}),bk('motion_setx',{N:bk('sensing_mx')})]})],'g_pong1','pad');
+   I.add(ball,[flg(),bk('motion_goxy',{X:0,Y:0}),bk('motion_point',{N:bk('op_rand',{A:-35,B:35})}),bk('control_forever',{SB:[
+     bk('motion_move',{N:7}),
+     bk('motion_edge'),
+     bk('control_if',{C:TCH(pad.name),SB:[bk('sound_play',{F:680}),bk('motion_point',{N:bk('op_rand',{A:-35,B:35})}),bk('motion_sety',{N:-138}),bk('data_change',{N:1},{V:sc.name})]}),
+     bk('control_if',{C:LT(bk('motion_ypos'),-168),SB:[bk('sound_play',{F:200}),bk('looks_say',{M:bk('op_join',{A:'GAME OVER! Score ',B:V(sc.name)})}),bk('event_bcast',null,{M:ov})]})
+   ]})],'g_pong1','ball');
+   I.add(ball,[bk('event_recv',null,{M:ov}),bk('control_stop',null,{O:'all'})],'g_pong1','ov');
+   keepIn(I,pad);I.notes.push('Move the paddle with your MOUSE. Keep the ball off the floor — score climbs on every hit!');}},
  {id:'g_catch',n:'Fruit Catch',cat:'Games',ic:'🍎',df:'Full game',tags:['catch','ramps'],full:1,ap(I){const p=I.tgt;const sc=I.ensureVar('score',0);const fr=I.ensureSprite('Fruit','coin');const bomb=I.ensureSprite('Bomb','rock');const ov=I.msg('over');
    I.add(p,[flg(),bk('motion_goxy',{X:0,Y:-150}),bk('data_set',{N:0},{V:sc.name}),bk('control_forever',{SB:[bk('control_if',{C:KEY('right arrow'),SB:[bk('motion_chx',{N:9})]}),bk('control_if',{C:KEY('left arrow'),SB:[bk('motion_chx',{N:-9})]})]})],'g_catch','mv');
    I.add(fr,[flg(),bk('looks_hide'),bk('control_forever',{SB:[bk('control_clone',null,{O:'_myself_'}),bk('control_wait',{S:bk('op_div',{A:30,B:bk('op_add',{A:35,B:V(sc.name)})})})]})],'g_catch','fs');
