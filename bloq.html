@@ -1119,12 +1119,15 @@ function renderAcctBox(){const box=$('#acctBox');if(!box)return;box.innerHTML=''
  else{const li=document.createElement('button');li.className='btn';li.textContent='Log In';li.style.marginRight='6px';li.onclick=()=>openLogin();box.appendChild(li);
   const b=document.createElement('button');b.className='btn';b.innerHTML='&#43; Create Account';b.onclick=()=>openAcct();box.appendChild(b);}}
 function openLogin(){$('#loginName').value='';openOv('ovLogin');setTimeout(()=>{try{$('#loginName').focus();}catch(e){}},60);}
-function doLogin(){const n=($('#loginName').value||'').trim();if(!n){toast('Enter your username');return;}
- let found=null;
- for(const g of dbGames){if(g.author&&g.authorId&&g.author.toLowerCase()===n.toLowerCase()){found={id:g.authorId,name:g.author,avatar:g.authorAvatar};break;}}
- if(!found)for(const s of lbScores){if(s.player&&s.playerId&&s.player.toLowerCase()===n.toLowerCase()){found={id:s.playerId,name:s.player};break;}}
- const a=(found&&found.id)?{id:found.id,name:found.name||n.slice(0,20),avatar:found.avatar||ARTS[0],joined:Date.now()}:{id:uid('u'),name:n.slice(0,20),avatar:ARTS[0],joined:Date.now()};
- saveAcct(a);closeOv('ovLogin');confetti&&confetti(30);sfx&&sfx(760);toast((found?'Welcome back, ':'Signed in as ')+a.name+'!');}
+async function doLogin(){const n=($('#loginName').value||'').trim();if(!n){toast('Enter your username');return;}const lc=n.toLowerCase();
+ let found=dbUsers.find(u=>u.name&&u.name.toLowerCase()===lc)||null;   // authoritative: has the real avatar
+ if(!found)for(const g of dbGames){if(g.author&&g.authorId&&g.author.toLowerCase()===lc){found={id:g.authorId,name:g.author,avatar:g.authorAvatar};break;}}
+ if(!found)for(const s of lbScores){if(s.player&&s.playerId&&s.player.toLowerCase()===lc){found={id:s.playerId,name:s.player};break;}}
+ if(found&&found.id&&!found.avatar&&DB){try{const sn=await DB.doc('users/'+found.id).get();if(sn&&sn.exists){const d=sn.data()||{};found.name=d.name||found.name;if(d.avatar)found.avatar=d.avatar;}}catch(e){}}
+ if(found&&found.id){const a={id:found.id,name:found.name||n.slice(0,20),avatar:found.avatar||(ACCT&&ACCT.avatar)||ARTS[0],joined:found.joined||Date.now()};
+   ACCT=a;LS.s('bloq.account',JSON.stringify(a));if(DB&&found.avatar){try{DB.doc('users/'+a.id).set({name:a.name,avatar:a.avatar,joined:a.joined});}catch(e){}}renderAcctBox();  // only write back when we know the real avatar, so login never overwrites it with a default
+   closeOv('ovLogin');confetti&&confetti(30);sfx&&sfx(760);toast('Welcome back, '+a.name+'!'+(found.avatar?'':' (pick your avatar in Settings if it looks wrong)'));return;}
+ const a={id:uid('u'),name:n.slice(0,20),avatar:ARTS[0],joined:Date.now()};saveAcct(a);closeOv('ovLogin');sfx&&sfx(760);toast('Signed in as '+a.name+' — welcome!');}
 let acctResolve=null;
 function openAcct(cb){acctResolve=cb||null;const av=$('#acctAv');av.innerHTML='';let pick=ACCT?ACCT.avatar:ARTS[0];
  ARTS.forEach(a=>{const c=document.createElement('button');c.className='gc';c.style.cssText='padding:5px;cursor:pointer;background:var(--panel2);'+(a===pick?'outline:3px solid var(--accent)':'');const cn=document.createElement('canvas');cn.width=44;cn.height=40;const x=cn.getContext('2d');x.imageSmoothingEnabled=false;x.save();x.translate(22,20);drawArt(x,a,3);x.restore();c.appendChild(cn);c.onclick=()=>{pick=a;$$('#acctAv .gc').forEach(z=>z.style.outline='');c.style.outline='3px solid var(--accent)';};av.appendChild(c);});
@@ -1206,10 +1209,11 @@ function renderLeaderboard(){const el=$('#lead');if(!el)return;let list=DB?lbSco
   el.appendChild(row);});}
 function loadLocalPosts(){try{return JSON.parse(LS.g('bloq.posts')||'[]');}catch(e){return[];}}
 function saveLocalPost(doc){doc.id=doc.id||uid('lp');doc.likes=doc.likes||0;doc.plays=doc.plays||0;const a=loadLocalPosts();a.unshift(doc);LS.s('bloq.posts',JSON.stringify(a.slice(0,20)));}
-let DB=null,dbGames=[];
+let DB=null,dbGames=[],dbUsers=[];
 async function initCommunity(){try{if(window.claude&&window.claude.use)DB=await window.claude.use('db');}catch(e){DB=null;}
  if(DB){try{DB.collection('games').orderBy('createdAt','desc').limit(40).onSnapshot(snap=>{dbGames=snap.docs.map(d=>{const x=d.data()||{};return{id:d.id,title:x.title,author:x.author,authorId:x.authorId,authorAvatar:x.authorAvatar,project:x.project,cover:x.cover,likes:x.likes||0,plays:x.plays||0,createdAt:x.createdAt};});if(VIEW_HOME)renderCommunity();},e=>{DB=null;if(VIEW_HOME)renderCommunity();});
-   DB.collection('scores').orderBy('score','desc').limit(12).onSnapshot(snap=>{lbScores=snap.docs.map(d=>d.data()||{});if(VIEW_HOME)renderLeaderboard();},e=>{});}catch(e){DB=null;}}
+   DB.collection('scores').orderBy('score','desc').limit(12).onSnapshot(snap=>{lbScores=snap.docs.map(d=>d.data()||{});if(VIEW_HOME)renderLeaderboard();},e=>{});
+   try{DB.collection('users').limit(300).onSnapshot(snap=>{dbUsers=snap.docs.map(d=>({id:d.id,...(d.data()||{})}));},e=>{});}catch(e){}}catch(e){DB=null;}}
  if(VIEW_HOME){renderCommunity();renderLeaderboard();}}
 function postGame(){const j=ser();if(j.length>200000){toast('Game is too big to post.');return;}
  ensureAccount(acct=>{openCover({art:mainArt(),bg:mainBg(),bn:mainBn(),title:(PROJ.name&&PROJ.name!=='Untitled')?PROJ.name:'My Game'},async cov=>{
