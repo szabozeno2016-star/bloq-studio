@@ -742,9 +742,9 @@ function buildSnap(ds){SNAP=[];const dr=new Set();allBlk(ds.stack,dr);const c=$(
 function afterEl(el){if(el&&el.classList&&el.classList.contains('chead')){const cw=el.closest('.cwrap');if(cw)return cw;}return el;}
 function snap(e){clrGh();DRAG.snap=null;const r=DRAG.el.getBoundingClientRect();const px=DRAG.rep?r.left+6:r.left+8,py=DRAG.rep?r.top+r.height/2:r.top+6;const cands=[];
  SNAP.forEach(t=>{const tr=t.el.getBoundingClientRect();
-  if(t.k==='slot'){ // a reporter fills a slot: accept when the dragged block OVERLAPS the slot (not just its far-left edge), so you can aim the block body over the hole
-    const tx=tr.left+6,ty=tr.top+tr.height/2;const ov=!(r.right<tr.left-8||r.left>tr.right+8||r.bottom<tr.top-8||r.top>tr.bottom+8);const near=Math.hypot(px-tx,py-ty);
-    if(ov||near<46)cands.push({t,d:Math.abs(px-tx)+Math.abs(py-ty)*0.6});return;}
+  if(t.k==='slot'){ // a reporter fills a slot: accept generously — when the dragged block overlaps the slot OR its connection point is near it (roomy horizontal/vertical tolerance so you can aim the block body near the hole)
+    const tx=tr.left+6,ty=tr.top+tr.height/2;const dx=Math.abs(px-tx),dy=Math.abs(py-ty);const ov=!(r.right<tr.left-16||r.left>tr.right+16||r.bottom<tr.top-16||r.top>tr.bottom+16);
+    if(ov||(dx<80&&dy<44))cands.push({t,d:dx+dy*0.7});return;}
   let tx,ty,plx=px,ply=py;if(t.k==='after'){const ar=afterEl(t.el).getBoundingClientRect();tx=tr.left+8;ty=ar.bottom;}else if(t.k==='mouth'){tx=tr.left+6;ty=tr.top+3;}else{tx=tr.left+8;ty=tr.top;plx=r.left+8;ply=r.bottom-4;}const d=Math.hypot(plx-tx,ply-ty);if(d<36)cands.push({t,d});});
  // when nested slots overlap, prefer the innermost — drop any slot target that contains another candidate slot
  const slotC=cands.filter(c=>c.t.k==='slot');const pool=cands.filter(c=>!(c.t.k==='slot'&&slotC.some(o=>o!==c&&c.t.el.contains(o.t.el))));
