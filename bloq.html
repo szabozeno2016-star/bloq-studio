@@ -1050,7 +1050,9 @@ addEventListener('keydown',e=>{const typing=/INPUT|SELECT|TEXTAREA/.test((docume
  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
  if(ov)return;
- if((e.key==='Delete'||e.key==='Backspace')&&!VIEW_HOME&&!DRAG&&DELBLK){e.preventDefault();pushU();delBlk(DELBLK);DELBLK=null;sched();save();sfx(200,60);return;}  // delete the block under the cursor
+ if((e.key==='Delete'||e.key==='Backspace')&&!VIEW_HOME){
+   if(DRAG){e.preventDefault();try{removeEventListener('pointermove',dm);removeEventListener('pointerup',du);}catch(_){}clrGh();const t=editT();t.scripts=t.scripts.filter(s=>s!==DRAG.sc);DRAG=null;PEND=null;sched();save();sfx(200,60);return;}  // delete the block/stack you're holding
+   if(DELBLK){e.preventDefault();pushU();delBlk(DELBLK);DELBLK=null;sched();save();sfx(200,60);return;}}  // delete the block under the cursor
  if(e.key===' '&&!TH.length){e.preventDefault();greenFlag();}});  // Space starts when idle; while running it passes through to the game
 function openOv(id){$('#'+id).classList.add('on');}function closeOv(id){$('#'+id).classList.remove('on');}
 /* dismiss an overlay and clear any pending resolver so nothing hangs */
@@ -1270,7 +1272,7 @@ function openSettings(){const b=$('#setBody');b.innerHTML='';
  if(ACCT){const out=document.createElement('button');out.className='btn';out.textContent='Sign out';out.onclick=()=>{ACCT=null;LS.s('bloq.account','');renderAcctBox();openSettings();};row('Signed in as '+ACCT.name,out);}
  const rst=document.createElement('button');rst.className='btn';rst.style.cssText='background:var(--bad);color:#fff';rst.textContent='Reset everything';rst.onclick=()=>{askConfirm('Erase your account, saved game, likes and posts on THIS device? (Posted community games stay online.)',()=>{try{['bloq.account','bloq.posts','bloq.liked','bloq.bumps','bloq.arcade.v1','bloq.muted','bloq.theme'].forEach(k=>localStorage.removeItem(k));}catch(e){}location.reload();});};
  row('Danger zone',rst);
- const note=document.createElement('div');note.style.cssText='color:var(--muted);font-weight:700;font-size:11px;padding-top:14px;line-height:1.5';note.innerHTML='Bloq Studio Arcade &middot; original block coding.<br>Shortcuts: <b>F+C</b> games &middot; <b>Ctrl+K</b> commands &middot; <b>Delete</b> removes the hovered block &middot; <b>Space</b> run.';b.appendChild(note);
+ const note=document.createElement('div');note.style.cssText='color:var(--muted);font-weight:700;font-size:11px;padding-top:14px;line-height:1.5';note.innerHTML='Bloq Studio Arcade &middot; original block coding.<br>Shortcuts: <b>F+C</b> games &middot; <b>Ctrl+K</b> commands &middot; <b>Delete</b> removes the held or hovered block &middot; <b>Space</b> run.';b.appendChild(note);
  openOv('ovSet');}
 $('#settings').onclick=openSettings;$('#hsettings').onclick=openSettings;$('#setX').onclick=()=>closeOv('ovSet');
 /* Esc pause menu */
