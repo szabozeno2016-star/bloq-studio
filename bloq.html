@@ -378,7 +378,7 @@ def('control_delclone',{c:'control',s:'cap',p:['delete this clone'],*r(c){if(c.s
 /* sensing */
 def('sensing_touch',{c:'sensing',s:'bool',p:['touching ',M('O','_edge_',()=>tgtMenu(1,0,1)),'?'],g:(c,b)=>touching(c.sp,c.field(b,'O'))});
 def('sensing_touchcolor',{c:'sensing',s:'bool',p:['touching color ',M('K','red',()=>Object.keys(COLMAP))],g:(c,b)=>touchColor(c.sp,COLMAP[c.field(b,'K')]||'#ff2b2b')});
-def('sensing_key',{c:'sensing',s:'bool',p:['key ',M('K','space',()=>KEYS),' down?'],g:(c,b)=>!!IO.keys[nk(c.field(b,'K'))]});
+def('sensing_key',{c:'sensing',s:'bool',p:['key ',M('K','space',()=>KEYS),' pressed?'],g:(c,b)=>!!IO.keys[nk(c.field(b,'K'))]});
 def('sensing_mdown',{c:'sensing',s:'bool',p:['mouse down?'],g:()=>IO.md});
 def('sensing_mx',{c:'sensing',s:'rep',p:['mouse x'],g:()=>r2(IO.mx)});
 def('sensing_my',{c:'sensing',s:'rep',p:['mouse y'],g:()=>r2(IO.my)});
@@ -455,6 +455,22 @@ def('pen_up',{c:'pen',s:'stack',p:['pen up'],*r(c){c.sp.pen.down=0;}});
 def('pen_color',{c:'pen',s:'stack',p:['set pen color to ',M('C','blue',()=>Object.keys(PEN_COLS))],*r(c,b){c.sp.pen.color=PEN_COLS[c.field(b,'C')]||'#1a5cff';}});
 def('pen_setsize',{c:'pen',s:'stack',p:['set pen size to ',N('N',4)],*r(c,b){c.sp.pen.size=clamp(c.a(b,'N'),1,50);}});
 def('pen_chsize',{c:'pen',s:'stack',p:['change pen size by ',N('N',1)],*r(c,b){c.sp.pen.size=clamp((c.sp.pen.size||4)+c.a(b,'N'),1,50);}});
+/* ---- more Scratch-parity blocks ---- */
+def('motion_glideto',{c:'motion',s:'stack',p:['glide ',N('S',1),' s to ',M('TO','_random_',()=>tgtMenu(1))],*r(c,b){const t=tpt(c.field(b,'TO'),1);if(!t)return;const s=c.sp,se=c.a(b,'S'),tx=t.x,ty=t.y,sx=s.x,sy=s.y,t0=c.now();if(se<=0){s.x=tx;s.y=ty;return;}let p=0;while(p<1){p=clamp((c.now()-t0)/(se*1000),0,1);s.x=sx+(tx-sx)*p;s.y=sy+(ty-sy)*p;if(p<1)yield;}}});
+def('looks_thinkfor',{c:'looks',s:'stack',p:['think ',T('M','Hmm'),' for ',N('S',2),' s'],*r(c,b){const t=''+c.a(b,'M');c.sp.bub={t:'think',x:t};const e=c.now()+c.a(b,'S')*1000;while(c.now()<e)yield;if(c.sp.bub&&c.sp.bub.x===t)c.sp.bub=null;}});
+def('looks_backdropwait',{c:'looks',s:'stack',p:['switch backdrop ',M('C','',()=>PROJ.stage.cos.map(x=>x.name)),' and wait'],*r(c,b){const i=PROJ.stage.cos.findIndex(x=>x.name===c.field(b,'C'));if(i>=0){PROJ.stage.cn=i;const ths=startHats('bd',h=>h.fields.C===c.field(b,'C'));while(ths.some(t=>!t.done))yield;}}});
+def('event_whengt',{c:'events',s:'hat',p:['when ',M('W','timer',()=>['timer','loudness']),' > ',N('N',10)],hat:'gt'});
+def('sensing_loudness',{c:'sensing',s:'rep',p:['loudness'],g:()=>micLoudness()});
+def('sensing_username',{c:'sensing',s:'rep',p:['username'],g:()=>ACCT?ACCT.name:'Player'});
+def('sensing_dayssince2000',{c:'sensing',s:'rep',p:['days since 2000'],g:()=>r2((Date.now()-946684800000)/86400000)});
+def('sensing_dragmode',{c:'sensing',s:'stack',p:['set drag mode ',M('M','draggable',()=>['draggable','not draggable'])],*r(c,b){c.sp.draggable=c.field(b,'M')==='draggable'?1:0;}});
+/* mic loudness (lazy — asks for the mic only when a loudness block actually runs) */
+let MIC=null,micData=null;
+function initMic(){if(MIC!==null)return;MIC=0;try{if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{const a=actx(),src=a.createMediaStreamSource(st),an=a.createAnalyser();an.fftSize=512;src.connect(an);micData=new Uint8Array(an.fftSize);MIC=an;}).catch(()=>{MIC=0;});}catch(e){MIC=0;}}
+function micLoudness(){initMic();if(!MIC||!micData)return 0;try{MIC.getByteTimeDomainData(micData);let sum=0;for(let i=0;i<micData.length;i++){const v=(micData[i]-128)/128;sum+=v*v;}return clamp(Math.round(Math.sqrt(sum/micData.length)*300),0,100);}catch(e){return 0;}}
+/* "when [timer/loudness] > n" — edge-triggered poll, checked each frame while running */
+let GTPREV={};
+function pollGtHats(){[PROJ.stage,...PROJ.sprites].forEach(sp=>(sp.scripts||[]).forEach(sc=>{const h=sc.stack[0];if(!h||!D[h.op]||D[h.op].hat!=='gt')return;const which=(h.fields&&h.fields.W)||'timer';const val=which==='loudness'?micLoudness():(NOW()-IO.t0)/1000;const thr=toNum(ev(h.inputs&&h.inputs.N,sp,{done:0}));const now=val>thr,was=GTPREV[sc.id]||false;if(now&&!was)startThread(sp,sc.stack.slice(1),sc.id);GTPREV[sc.id]=now;}));}
 function moveLayer(s,dir,n){const L=PROJ.sprites,i=L.indexOf(s);if(i<0)return;L.splice(i,1);if(dir==='front')L.push(s);else if(dir==='back')L.unshift(s);else if(dir==='forward')L.splice(Math.min(L.length,i+(n||1)),0,s);else L.splice(Math.max(0,i-(n||1)),0,s);}
 function propOf(pr,o){const s=o==='Stage'?PROJ.stage:PROJ.sprites.find(x=>x.name===o&&!x.clone);if(!s)return 0;switch(pr){case'x position':return r2(s.x||0);case'y position':return r2(s.y||0);case'direction':return r2(s.dir||90);case'costume #':case'backdrop #':return (s.cn||0)+1;case'size':return s.size||100;case'volume':return s.vol||100;}return 0;}
 function curDate(t){const d=new Date();return {year:d.getFullYear(),month:d.getMonth()+1,date:d.getDate(),'day of week':d.getDay()+1,hour:d.getHours(),minute:d.getMinutes(),second:d.getSeconds()}[t]||0;}
@@ -494,12 +510,12 @@ function ev(inp,sp,th){if(inp==null)return false;if(typeof inp==='object'&&inp.o
 function startThread(sp,st,key){if(key)TH=TH.filter(t=>!(t.sp===sp&&t.key===key&&!t.done));const th={sp,done:0,key};th.g=(function*(){yield*runStack(st,sp,th)})();TH.push(th);return th;}
 function startHats(kind,match){const out=[];[PROJ.stage,...PROJ.sprites].forEach(sp=>(sp.scripts||[]).forEach(sc=>{const h=sc.stack[0];if(h&&D[h.op]&&D[h.op].hat===kind&&(!match||match(h)))out.push(startThread(sp,sc.stack.slice(1),sc.id));}));return out;}
 function stopAll(){TH.forEach(t=>{t.done=1;t.g=null});TH=[];try{stopSounds();}catch(e){}}
-function greenFlag(){IO.t0=NOW();PROJ.sprites=PROJ.sprites.filter(s=>!s.clone);stopAll();ensure();const s=startHats('flag');$('#flag').style.outline='3px solid #fff';sfx(523,90);if(!s.length)toast('Tip: add a "when ⚑ clicked" block, or build a game with F+C');
+function greenFlag(){IO.t0=NOW();GTPREV={};PROJ.sprites=PROJ.sprites.filter(s=>!s.clone);stopAll();ensure();const s=startHats('flag');$('#flag').style.outline='3px solid #fff';sfx(523,90);if(!s.length)toast('Tip: add a "when ⚑ clicked" block, or build a game with F+C');
  try{const hasM=st=>(st||[]).some(b=>(D[b.op]&&D[b.op].c==='motion')||Object.values(b.inputs||{}).some(v=>Array.isArray(v)&&hasM(v)));if(typeof VIEW_HOME!=='undefined'&&!VIEW_HOME&&(PROJ.stage.scripts||[]).some(sc=>hasM(sc.stack)))toast('Motion blocks only work on a sprite — select a sprite (not the Stage) to make it move.');}catch(e){}}
 function stopEvery(){stopAll();if(TICK){clearInterval(TICK);TICK=0;}PROJ.sprites=PROJ.sprites.filter(s=>!s.clone);PROJ.sprites.forEach(s=>s.bub=null);$('#flag').style.outline='';try{$$('.script.glow').forEach(el=>el.classList.remove('glow'));}catch(e){}closeAsk();draw();}
 /* setInterval ticker (~30fps) — reliable even where requestAnimationFrame is throttled inside the sandbox */
 function ensure(){if(TICK)return;TICK=setInterval(step,33);}  /* first tick fires after hats/threads are queued (callers add threads right after ensure) */
-function step(){for(const t of[...TH]){if(t.done||!t.g)continue;try{const r=t.g.next();if(r.done){t.done=1;t.g=null;}}catch(e){if(e!==STOP)console.error(e);t.done=1;t.g=null;}}TH=TH.filter(t=>!t.done);if(typeof PLAYTRACK!=='undefined'&&PLAYTRACK){const s=curScore();if(s!=null&&s>PLAYMAX)PLAYMAX=s;}penUpdate();draw();
+function step(){try{pollGtHats();}catch(e){}for(const t of[...TH]){if(t.done||!t.g)continue;try{const r=t.g.next();if(r.done){t.done=1;t.g=null;}}catch(e){if(e!==STOP)console.error(e);t.done=1;t.g=null;}}TH=TH.filter(t=>!t.done);if(typeof PLAYTRACK!=='undefined'&&PLAYTRACK){const s=curScore();if(s!=null&&s>PLAYMAX)PLAYMAX=s;}penUpdate();draw();
  try{if(typeof VIEW_HOME!=='undefined'&&!VIEW_HOME&&!$('#playov').classList.contains('on')){const on=new Set(TH.map(t=>t.key));$$('#wsc .script').forEach(el=>el.classList.toggle('glow',on.has(el.dataset.id)));}}catch(e){}
  if(!TH.length){clearInterval(TICK);TICK=0;$('#flag').style.outline='';}}
 function mkClone(c,of){const src=of==='_myself_'?c.sp:PROJ.sprites.find(s=>s.name===of&&!s.clone);if(!src)return;if(PROJ.sprites.length>300)return;const cl=JSON.parse(JSON.stringify(src));cl.id=uid('cl');cl.clone=1;cl.scripts=src.scripts;PROJ.sprites.splice(PROJ.sprites.indexOf(src)+1,0,cl);(cl.scripts||[]).forEach(sc=>{const h=sc.stack[0];if(h&&D[h.op]&&D[h.op].hat==='clone')startThread(cl,sc.stack.slice(1));});}
