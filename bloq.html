@@ -56,6 +56,7 @@ input,select{font-family:inherit;font-weight:800}
 .blk{position:relative;display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;color:#fff;font-weight:900;font-size:12.5px;padding:6px 9px;
   border:2px solid var(--edge);box-shadow:2px 2px 0 rgba(32,35,58,.55);user-select:none;cursor:grab;line-height:1.5}
 .blk.hat{border-top-left-radius:0}.blk.rep{padding:3px 9px}.blk.bool{padding:3px 12px}
+.argchip{margin:0 2px;cursor:grab;box-shadow:1px 1px 0 rgba(32,35,58,.5)}
 .blk.stack,.blk.hat{border-radius:5px}
 /* Scratch-style jigsaw connectors: bump on the bottom, notch on the top */
 .blk.stack:not(.chead)::after,.blk.hat::after,.cfoot::after{content:"";position:absolute;left:12px;bottom:-5px;width:16px;height:9px;background:inherit;border:2px solid var(--edge);border-top:0;border-bottom-left-radius:5px;border-bottom-right-radius:5px;box-sizing:border-box;z-index:3}
@@ -653,9 +654,9 @@ function regProcs(){for(const op in D)if('proc'in D[op])delete D[op];
   (p.parts||[]).forEach(part=>{if(part.t==='label')call.push(part.text||'');else if(part.t==='num'){call.push(N('A'+ii,''));ii++;}else if(part.t==='bool'){call.push(B('A'+ii));ii++;}});
   if(!call.length)call.push(p.name||'block');
   D['procC_'+p.id]={c:'myblocks',s:'stack',dyn:1,proc:p.id,p:call,*r(c,b){yield*runProc(c,b,p.id);}};
-  const dp=['define'];(p.parts||[]).forEach(part=>{dp.push(part.t==='label'?(part.text||''):'('+(part.name||'')+')');});
-  D['procD_'+p.id]={c:'myblocks',s:'hat',dyn:1,proc:p.id,hat:'procdef',p:[dp.join(' ')]};
-  procInputs(p).forEach((part,i)=>{D['procA_'+p.id+'_'+i]={c:'myblocks',s:part.t==='bool'?'bool':'rep',dyn:1,proc:p.id,argi:i,g:c=>{const f=c.th&&c.th.frames;return(f&&f.length)?f[f.length-1][i]:(part.t==='bool'?false:0);}};});});}
+  const dp=['define'];let ai=0;(p.parts||[]).forEach(part=>{if(part.t==='label')dp.push(part.text||'');else{dp.push({t:'arg',op:'procA_'+p.id+'_'+ai,name:part.name||''});ai++;}});
+  D['procD_'+p.id]={c:'myblocks',s:'hat',dyn:1,proc:p.id,hat:'procdef',p:dp};
+  procInputs(p).forEach((part,i)=>{D['procA_'+p.id+'_'+i]={c:'myblocks',s:part.t==='bool'?'bool':'rep',dyn:1,proc:p.id,argi:i,p:[part.name||('arg'+(i+1))],g:c=>{const f=c.th&&c.th.frames;return(f&&f.length)?f[f.length-1][i]:(part.t==='bool'?false:0);}};});});}
 function*runProc(c,b,id){const p=(PROJ.procs||[]).find(x=>x.id===id);if(!p)return;const def=(c.sp.scripts||[]).find(s=>s.stack[0]&&s.stack[0].op==='procD_'+id);const args=procInputs(p).map((part,i)=>c.a(b,'A'+i));c.th.frames=c.th.frames||[];if(c.th.frames.length>200)return;c.th.frames.push(args);try{if(def){if(p.warp){const g=c.run(def.stack.slice(1));let n=0;while(true){const r=g.next();if(r.done||++n>200000)break;}}else{yield*c.run(def.stack.slice(1));}}}finally{c.th.frames.pop();}}
 /* ---- "Make a Block" builder (Scratch-style: labels + number/boolean inputs) ---- */
 let procDraft=null;
@@ -713,7 +714,9 @@ function renderC(b,d,col,o){const w=document.createElement('div');w.className='c
  const f=document.createElement('div');f.className='cfoot';f.style.background=col;w.appendChild(f);return w;}
 function branch(b,n,col,o){const br=document.createElement('div');br.className='cbr';br.style.borderColor='var(--edge)';const sl=document.createElement('div');sl.className='sstack mouth';const st=b.inputs[n]||(b.inputs[n]=[]);renderInto(sl,st,o);if(!o.pal)META.set(sl,{t:'mouth',arr:st,b});br.appendChild(sl);return br;}
 function renderInto(cont,st,o){st.forEach((blk,i)=>{const el=render(blk,o);if(!o.pal){const m=META.get(el.classList.contains('cwrap')?el.querySelector('.blk'):el);if(m){m.arr=st;m.idx=i;}}cont.appendChild(el);});}
-function parts(el,sp,b,col,o){sp.forEach(pt=>{if(typeof pt==='string'){const s=document.createElement('span');s.textContent=pt;el.appendChild(s);return;}if(pt.t==='s')return;if(pt.t==='m'){el.appendChild(mSel(b,pt,o));return;}if(pt.t==='b'){el.appendChild(bSlot(b,pt.i,o));return;}el.appendChild(vSlot(b,pt,o));});}
+function parts(el,sp,b,col,o){sp.forEach(pt=>{if(typeof pt==='string'){const s=document.createElement('span');s.textContent=pt;el.appendChild(s);return;}if(pt.t==='s')return;if(pt.t==='arg'){el.appendChild(argChip(pt,o));return;}if(pt.t==='m'){el.appendChild(mSel(b,pt,o));return;}if(pt.t==='b'){el.appendChild(bSlot(b,pt.i,o));return;}el.appendChild(vSlot(b,pt,o));});}
+/* a parameter shown inside a "define" hat — drag it to drop a copy of that argument reporter into the definition (like Scratch) */
+function argChip(pt,o){const tmpl=mkBlock(pt.op);const chip=render(tmpl,{pal:1});chip.classList.add('argchip');if(!o.pal){chip.style.cursor='grab';chip.addEventListener('pointerdown',e=>{if(e.button)return;e.stopPropagation();palDrag(e,tmpl);});}return chip;}
 function vSlot(b,pt,o){const v=b.inputs[pt.i];if(v&&typeof v==='object'&&v.op){const s=document.createElement('span');s.className='emb';s.appendChild(render(v,o));if(!o.pal)META.set(s,{t:'slot',b,n:pt.i,k:'v'});return s;}const inp=document.createElement('input');inp.className='slot '+(pt.t==='n'?'n':'');inp.value=v==null?'':v;inp.style.width=Math.max(1,(''+inp.value).length)*8+14+'px';inp.addEventListener('input',()=>{inp.style.width=Math.max(1,inp.value.length)*8+14+'px';});inp.addEventListener('change',()=>{b.inputs[pt.i]=inp.value;save();});inp.addEventListener('pointerdown',e=>e.stopPropagation());if(o.pal)inp.readOnly=1;else META.set(inp,{t:'slot',b,n:pt.i,k:'v'});return inp;}
 function bSlot(b,n,o){const v=b.inputs[n];if(v&&typeof v==='object'&&v.op){const s=document.createElement('span');s.className='emb';s.appendChild(render(v,o));if(!o.pal)META.set(s,{t:'slot',b,n,k:'b'});return s;}const s=document.createElement('span');s.className='bsl';if(!o.pal)META.set(s,{t:'slot',b,n,k:'b'});return s;}
 function mSel(b,pt,o){const s=document.createElement('select');s.className='sel';let opts=menu(b.op,pt.i),cur=b.fields[pt.i];const list=opts.length?opts:[cur];if(cur&&!list.includes(cur))list.unshift(cur);list.forEach(x=>{const op=document.createElement('option');op.value=x;op.textContent=ml(x);s.appendChild(op);});s.value=cur;s.addEventListener('pointerdown',e=>e.stopPropagation());s.addEventListener('change',()=>{b.fields[pt.i]=s.value;save();});if(o.pal)s.disabled=1;return s;}
