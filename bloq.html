@@ -62,7 +62,9 @@ input,select{font-family:inherit;font-weight:800}
 .blk.stack:not(.chead)::after,.blk.hat::after,.cfoot::after{content:"";position:absolute;left:12px;bottom:-5px;width:16px;height:9px;background:inherit;border:2px solid var(--edge);border-top:0;border-bottom-left-radius:5px;border-bottom-right-radius:5px;box-sizing:border-box;z-index:3}
 .blk.stack:not(.nonotch)::before{content:"";position:absolute;left:12px;top:-2px;width:16px;height:6px;background:var(--panel2);border:2px solid var(--edge);border-top:0;border-bottom-left-radius:5px;border-bottom-right-radius:5px;box-sizing:border-box;z-index:2}
 .cfoot{position:relative;border-bottom-left-radius:5px;border-bottom-right-radius:5px}
-.palrow{margin:8px 0}
+.palrow{margin:8px 0;display:flex;align-items:center;gap:7px}
+.palchk{flex:none;width:17px;height:17px;border:2px solid var(--edge);border-radius:4px;background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;line-height:1}
+.palchk.on{background:#4cbb4c;border-color:#3aa03a}
 .slot{background:#fff;color:#20233a;border:2px solid var(--edge);min-width:26px;text-align:center;padding:2px 6px;font-weight:900;font-size:12px;outline:none}
 .slot.n{border-radius:0}
 .sel{background:#fff;color:#20233a;border:2px solid var(--edge);padding:2px 4px;font-weight:900;font-size:11px}
@@ -701,7 +703,7 @@ function renderPal(){const stage=PROJ.cur==='stage';if(stage&&ACAT==='motion')AC
    if(c[0]==='variables'){const mkb=document.createElement('button');mkb.className='mk';mkb.textContent='+ Make a Variable';mkb.onclick=makeVar;box.appendChild(mkb);}
    if(c[0]==='lists'){const mkb=document.createElement('button');mkb.className='mk';mkb.textContent='+ Make a List';mkb.onclick=makeList;box.appendChild(mkb);}
    if(c[0]==='myblocks'){const mkb=document.createElement('button');mkb.className='mk';mkb.textContent='+ Make a Block';mkb.onclick=makeProc;box.appendChild(mkb);}
-   items.forEach(({el})=>{const w=document.createElement('div');w.className='palrow';w.appendChild(el);box.appendChild(w);});});
+   items.forEach(({op,el})=>{const w=document.createElement('div');w.className='palrow';if(op.startsWith('VAR:')||op.startsWith('LIST:')){const isVar=op.startsWith('VAR:'),nm=op.slice(isVar?4:5),tgt=isVar?fVar(curSp(),nm):fList(curSp(),nm);if(tgt){const ck=document.createElement('div');ck.className='palchk'+(tgt.mon?' on':'');ck.textContent=tgt.mon?'✓':'';ck.title='Show on stage';ck.onclick=e=>{e.stopPropagation();tgt.mon=tgt.mon?0:1;ck.classList.toggle('on',!!tgt.mon);ck.textContent=tgt.mon?'✓':'';draw();save();};w.appendChild(ck);}}w.appendChild(el);box.appendChild(w);});});
  if(!box.querySelector('.palrow')&&q)box.innerHTML+='<div style="padding:14px;color:var(--muted)">No blocks match.</div>';}
 function palBlock(op){let b;if(op.startsWith('VAR:')){b=mkBlock('data_var');b.fields.V=op.slice(4);}else if(op.startsWith('LIST:')){b=mkBlock('data_listrep');b.fields.L=op.slice(5);}else{if(!D[op])return null;b=mkBlock(op);}const el=render(b,{pal:1});el.addEventListener('pointerdown',e=>palDrag(e,b));return el;}
 
