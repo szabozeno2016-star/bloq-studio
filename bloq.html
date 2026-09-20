@@ -582,6 +582,7 @@ const ART={
  cat:['O  O  O ',' OOOOOO ','OwOwwOwO','OOOnnOOO',' OOOOOO ',' O OO O ','O  OO  O',' k    k '],
  ghost:[' rrrrrr ','rrrrrrrr','rwwrwwrr','rwbrwbrr','rrrrrrrr','rrrrrrrr','rrrrrrrr','r r rr r'],
  coin:['  yyyy  ',' yYYYYy ','yYyyyYYy','yYyYyYYy','yYyyyYYy','yYYYYYYy',' yYYYYy ','  yyyy  '],
+ cookie:['  oooo  ',' ookooo ','oooooOko','okoooooo','oOoookoo','okoooooo',' ooookO ','  oooo  '],
  block:['MMMMMMMM','MyyyyyM ','My M yM ','My M yM ','MyyyyyM ','My   yM ','MyMMMyM ','MMMMMMMM'],
  star:['   yy   ','  yYYy  ',' yYYYYy ','yYYYYYYy',' yYYYYy ',' yY  Yy ','yy    yy','        '],
  slime:['        ',' gggggg ','gggggggg','gwgggwgg','gwgggwgg','gggggggg','gGgGgGgG','g g g g '],
@@ -796,7 +797,7 @@ function renderProps(){const box=$('#props'),s=editT();if(s.stage){box.innerHTML
  $('#psnd',box).onclick=()=>openSounds();}
 const esc=s=>(''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function selSpr(id){PROJ.cur=id;renderSpr();renderWs();renderPal();save();}
-const ARTS=['dog','cat','ghost','slime','frog','bird','robot','hero','alien','pig','bee','fish','mole','ufo','star','heart','gem','sun','skull','coin','ball','block','rock'];
+const ARTS=['cookie','dog','cat','ghost','slime','frog','bird','robot','hero','alien','pig','bee','fish','mole','ufo','star','heart','gem','sun','skull','coin','ball','block','rock'];
 function addSpr(){openGal(a=>{const s=newSprite(uniq('Sprite',PROJ.sprites.map(x=>x.name)),a);s.x=rnd(-100,100);s.y=rnd(-60,60);PROJ.sprites.push(s);selSpr(s.id);draw();save();toast('Added '+a);});}
 function dupSpr(s){const c=JSON.parse(JSON.stringify(s));c.id=uid('s');c.name=uniq(s.name,PROJ.sprites.map(x=>x.name));c.clone=0;c.x+=20;PROJ.sprites.push(c);selSpr(c.id);draw();save();}
 function delSpr(s){if(PROJ.sprites.filter(x=>!x.clone).length<=1){toast('Keep one sprite');return;}pushU();PROJ.sprites=PROJ.sprites.filter(x=>x!==s);if(PROJ.cur===s.id)PROJ.cur=PROJ.sprites.find(x=>!x.clone).id;renderSpr();renderWs();draw();save();}
