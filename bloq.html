@@ -301,6 +301,18 @@ input,select{font-family:inherit;font-weight:800}
    <div id="sndLib" style="display:none;margin-top:14px;border-top:3px solid var(--edge);padding-top:12px"><div style="font-weight:900;font-size:11px;color:var(--muted);margin-bottom:8px">TAP TO PREVIEW &middot; TAP &#43; TO ADD</div><div id="sndLibGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px"></div></div>
    <div id="sndRecBox" style="display:none;margin-top:14px;border-top:3px solid var(--edge);padding-top:12px"><div id="sndRecUI"></div></div>
   </div></div></div>
+<div class="ov" id="ovProc"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#129513; MAKE A BLOCK</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="procX">&#10005;</button></div>
+  <div class="sbody">
+   <div id="procDelWrap" style="text-align:center;margin-bottom:6px;display:none"><button id="procDel" title="Delete this block" style="border:0;background:transparent;font-size:20px;cursor:pointer">&#128465;</button></div>
+   <div id="procPrev" style="background:var(--panel2);border:3px solid var(--edge);padding:22px 14px;display:flex;justify-content:center;align-items:center;min-height:64px;overflow:auto;margin-bottom:14px"></div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+     <button class="btn" id="procAddNum">&#43; input <span style="color:var(--muted);font-weight:800">(number or text)</span></button>
+     <button class="btn" id="procAddBool">&#43; input <span style="color:var(--muted);font-weight:800">(boolean)</span></button>
+     <button class="btn" id="procAddLabel">&#43; label</button>
+   </div>
+   <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:800;font-size:12px;justify-content:center"><input type="checkbox" id="procWarp"> Run without screen refresh</label>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn" id="procCancel">Cancel</button><button class="btn prim" id="procOk">OK</button></div>
+  </div></div></div>
 <canvas id="fx" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:8000;display:none"></canvas>
 <div class="toasts" id="toasts"></div>
 
@@ -309,7 +321,7 @@ input,select{font-family:inherit;font-weight:800}
 /* ==== BLOQ STUDIO (single-file, arcade/blocky) — original work, not Scratch ==== */
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=(p='b')=>p+Math.random().toString(36).slice(2,8);
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),toNum=v=>{const n=parseFloat(v);return isNaN(n)?0:n;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),toNum=v=>{if(v===true)return 1;if(v===false||v==null)return 0;const n=parseFloat(v);return isNaN(n)?0:n;};
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,DEG=Math.PI/180,r2=n=>Math.round(n*100)/100;
 const CC={motion:'#4c97ff',looks:'#9b5cff',sound:'#d64ad6',events:'#ffbf00',control:'#ff9f1c',sensing:'#43c0e6',operators:'#3fbf4f',variables:'#ff8c1a',lists:'#ff661a',pen:'#0fbd8c',myblocks:'#ff5a8a'};
 const LS={g(k){try{return localStorage.getItem(k)}catch(e){return null}},s(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
@@ -633,18 +645,56 @@ function mkBlock(op,over){const d=D[op],b={id:uid(),op,inputs:{},fields:{}};spec
 function spec(op,b){const d=D[op];if(op==='data_var')return[{i:'V',t:'m',d:b&&b.fields?b.fields.V:''}];if(op==='data_listrep')return[{i:'L',t:'m',d:b&&b.fields?b.fields.L:''}];return d.p||[];}
 function menu(op,i){const p=spec(op,{}).find(x=>x&&x.i===i);if(p&&p.m)return p.m({sp:editT()});if(op==='data_var')return vars(curSp()).map(v=>v.name);if(op==='data_listrep')return allLists(curSp()).map(l=>l.name);return[];}
 /* ---------- CUSTOM BLOCKS ("My Blocks") ---------- */
+/* migrate old {name,params:[{name}]} custom blocks to the parts model */
+function procMigrate(p){if(!p.parts){p.parts=[{t:'label',text:p.name||'block'}];(p.params||[]).forEach(pm=>p.parts.push({t:'num',name:pm.name||'number'}));}return p;}
+const procInputs=p=>(p.parts||[]).filter(x=>x.t==='num'||x.t==='bool');
 function regProcs(){for(const op in D)if('proc'in D[op])delete D[op];
- (PROJ.procs||[]).forEach(p=>{const call=[p.name];p.params.forEach((pm,i)=>{call.push(' ');call.push(N('A'+i,''));});
+ (PROJ.procs||[]).forEach(p=>{procMigrate(p);let ii=0;const call=[];
+  (p.parts||[]).forEach(part=>{if(part.t==='label')call.push(part.text||'');else if(part.t==='num'){call.push(N('A'+ii,''));ii++;}else if(part.t==='bool'){call.push(B('A'+ii));ii++;}});
+  if(!call.length)call.push(p.name||'block');
   D['procC_'+p.id]={c:'myblocks',s:'stack',dyn:1,proc:p.id,p:call,*r(c,b){yield*runProc(c,b,p.id);}};
-  D['procD_'+p.id]={c:'myblocks',s:'hat',dyn:1,proc:p.id,hat:'procdef',p:['define '+p.name+(p.params.length?' ('+p.params.map(x=>x.name).join(', ')+')':'')]};
-  p.params.forEach((pm,i)=>{D['procA_'+p.id+'_'+i]={c:'myblocks',s:'rep',dyn:1,proc:p.id,argi:i,g:c=>{const f=c.th&&c.th.frames;return(f&&f.length)?f[f.length-1][i]:0;}};});});}
-function*runProc(c,b,id){const p=(PROJ.procs||[]).find(x=>x.id===id);if(!p)return;const def=(c.sp.scripts||[]).find(s=>s.stack[0]&&s.stack[0].op==='procD_'+id);const args=p.params.map((pm,i)=>c.a(b,'A'+i));c.th.frames=c.th.frames||[];if(c.th.frames.length>200)return;c.th.frames.push(args);try{if(def)yield*c.run(def.stack.slice(1));}finally{c.th.frames.pop();}}
-function makeProc(){askText('Name your block (e.g. jump)','jump',name=>{name=(name||'').trim();if(!name)return;askText('How many number inputs? (0-3)','0',cnt=>{const n=clamp(Math.round(toNum(cnt)),0,3);const params=[];for(let i=0;i<n;i++)params.push({name:'num'+(i+1)});PROJ.procs=PROJ.procs||[];const id=uid('p');PROJ.procs.push({id,name,params});regProcs();const sp=curSp();sp.scripts.push({id:uid('sc'),x:40,y:40+sp.scripts.length*6,stack:[mkBlock('procD_'+id)]});ACAT='myblocks';renderAll();save();toast('Block "'+name+'" created — a "define" block was added. Build it, then drag your new block from My Blocks!');});});}
+  const dp=['define'];(p.parts||[]).forEach(part=>{dp.push(part.t==='label'?(part.text||''):'('+(part.name||'')+')');});
+  D['procD_'+p.id]={c:'myblocks',s:'hat',dyn:1,proc:p.id,hat:'procdef',p:[dp.join(' ')]};
+  procInputs(p).forEach((part,i)=>{D['procA_'+p.id+'_'+i]={c:'myblocks',s:part.t==='bool'?'bool':'rep',dyn:1,proc:p.id,argi:i,g:c=>{const f=c.th&&c.th.frames;return(f&&f.length)?f[f.length-1][i]:(part.t==='bool'?false:0);}};});});}
+function*runProc(c,b,id){const p=(PROJ.procs||[]).find(x=>x.id===id);if(!p)return;const def=(c.sp.scripts||[]).find(s=>s.stack[0]&&s.stack[0].op==='procD_'+id);const args=procInputs(p).map((part,i)=>c.a(b,'A'+i));c.th.frames=c.th.frames||[];if(c.th.frames.length>200)return;c.th.frames.push(args);try{if(def){if(p.warp){const g=c.run(def.stack.slice(1));let n=0;while(true){const r=g.next();if(r.done||++n>200000)break;}}else{yield*c.run(def.stack.slice(1));}}}finally{c.th.frames.pop();}}
+/* ---- "Make a Block" builder (Scratch-style: labels + number/boolean inputs) ---- */
+let procDraft=null;
+function makeProc(){openProcBuilder(null);}
+function openProcBuilder(existing){procDraft=existing?{parts:JSON.parse(JSON.stringify(existing.parts||[])),warp:!!existing.warp,editId:existing.id}:{parts:[{t:'label',text:'block name'}],warp:false,editId:null};if(!procDraft.parts.length)procDraft.parts=[{t:'label',text:'block name'}];const wc=$('#procWarp');if(wc)wc.checked=procDraft.warp;const tr=$('#procDelWrap');if(tr)tr.style.display=procDraft.editId?'':'none';renderProcBuilder();openOv('ovProc');}
+function renderProcBuilder(){const prev=$('#procPrev');if(!prev)return;prev.innerHTML='';const blk=document.createElement('div');blk.className='blk stack';blk.style.background=CC.myblocks;blk.style.cursor='default';blk.style.flexWrap='wrap';
+ procDraft.parts.forEach((part,idx)=>{const seg=document.createElement('span');seg.style.cssText='position:relative;display:inline-flex;align-items:center;margin:2px 3px';const inp=document.createElement('input');inp.value=part.t==='label'?part.text:part.name;
+   if(part.t==='label'){inp.style.cssText='background:transparent;border:0;color:#fff;font-weight:900;font-size:13px;text-align:center;outline:none';inp.oninput=()=>{part.text=inp.value;fit(inp,9,20);};}
+   else{inp.className='slot';inp.style.cssText='font-weight:900;font-size:12px;color:#20233a;text-align:center;'+(part.t==='bool'?'border-radius:11px;background:#d7f0ff;':'border-radius:14px;background:#fff;');inp.oninput=()=>{part.name=inp.value;fit(inp,8,20);};}
+   fit(inp,part.t==='label'?9:8,20);inp.addEventListener('pointerdown',e=>e.stopPropagation());seg.appendChild(inp);
+   const x=document.createElement('button');x.textContent='×';x.title='Remove';x.style.cssText='margin-left:3px;border:0;background:rgba(0,0,0,.28);color:#fff;font-weight:900;border-radius:50%;width:16px;height:16px;line-height:16px;padding:0;cursor:pointer;font-size:11px';x.onmousedown=e=>e.preventDefault();x.onclick=()=>{procDraft.parts.splice(idx,1);renderProcBuilder();};seg.appendChild(x);blk.appendChild(seg);});
+ prev.appendChild(blk);
+ function fit(inp,per,pad){inp.style.width=(Math.max(3,(inp.value||'').length)*per+pad)+'px';}
+}
+function procAddPart(t){const ins=procInputs(procDraft).length;if(t==='label')procDraft.parts.push({t:'label',text:'label'});else procDraft.parts.push({t,name:(t==='bool'?'boolean':'number')+(ins+1)});renderProcBuilder();}
+function procSave(){const parts=procDraft.parts.map(p=>p.t==='label'?{t:'label',text:(p.text||'').trim()||'label'}:{t:p.t,name:(p.name||'').trim()||(p.t==='bool'?'boolean':'number')});
+ if(!parts.length)parts.push({t:'label',text:'block'});
+ const seen={};parts.forEach(p=>{if(p.t!=='label'){let n=p.name,k=2;while(seen[n]){n=p.name+k++;}p.name=n;seen[n]=1;}});   // unique input names
+ const name=parts.filter(p=>p.t==='label').map(p=>p.text).join(' ')||'block';const warp=$('#procWarp').checked;
+ pushU();PROJ.procs=PROJ.procs||[];
+ if(procDraft.editId){const p=PROJ.procs.find(x=>x.id===procDraft.editId);if(p){p.parts=parts;p.name=name;p.warp=warp;delete p.params;}}
+ else{const id=uid('p');PROJ.procs.push({id,name,parts,warp});regProcs();const sp=curSp();sp.scripts.push({id:uid('sc'),x:40,y:40+sp.scripts.length*6,stack:[mkBlock('procD_'+id)]});}
+ regProcs();closeOv('ovProc');ACAT='myblocks';renderAll();save();toast(procDraft.editId?'Block updated!':'Block ready — drag it from My Blocks and fill in its "define".');}
+function procDelete(){if(!procDraft.editId)return;askConfirm('Delete this custom block and its define script?',()=>{pushU();const id=procDraft.editId;PROJ.sprites.concat(PROJ.stage).forEach(sp=>{if(sp.scripts)sp.scripts=sp.scripts.filter(s=>!(s.stack[0]&&s.stack[0].op==='procD_'+id));});
+   // strip any call blocks of this proc from all scripts
+   const strip=st=>{for(let i=st.length-1;i>=0;i--){const b=st[i];if(b.op==='procC_'+id){st.splice(i,1);continue;}for(const k in b.inputs)if(Array.isArray(b.inputs[k]))strip(b.inputs[k]);}};
+   [PROJ.stage,...PROJ.sprites].forEach(sp=>(sp.scripts||[]).forEach(s=>strip(s.stack)));
+   PROJ.procs=PROJ.procs.filter(p=>p.id!==id);regProcs();closeOv('ovProc');renderAll();save();toast('Custom block deleted');});}
+$('#procAddNum').onclick=()=>procAddPart('num');
+$('#procAddBool').onclick=()=>procAddPart('bool');
+$('#procAddLabel').onclick=()=>procAddPart('label');
+$('#procOk').onclick=procSave;
+$('#procCancel').onclick=$('#procX').onclick=()=>{procDraft=null;closeOv('ovProc');};
+$('#procDel').onclick=procDelete;
 const SPRITE_ONLY=new Set(['looks_sayfor','looks_say','looks_think','looks_costume','looks_next','looks_chsize','looks_setsize','looks_show','looks_hide','looks_size','looks_costnum','looks_front','looks_layers']);
 function palAllowed(op){if(PROJ.cur!=='stage')return true;const d=D[op];if(!d)return true;if(d.c==='motion')return false;if(SPRITE_ONLY.has(op))return false;return true;}
 function renderPal(){const stage=PROJ.cur==='stage';if(stage&&ACAT==='motion')ACAT='events';const cb=$('#cats');cb.innerHTML='';CATS.filter(c=>(MODE==='advanced'||!['lists','pen','myblocks'].includes(c[0]))&&!(stage&&c[0]==='motion')).forEach(c=>{const el=document.createElement('button');el.className='cat'+(c[0]===ACAT?' on':'');el.innerHTML='<span class="dot" style="background:'+CC[c[0]]+'"></span>'+c[1];el.onclick=()=>{ACAT=c[0];renderPal();$('#blist').scrollTop=0;};cb.appendChild(el);});
  const box=$('#blist');box.innerHTML='';const q=$('#psearch').value.trim().toLowerCase();const cats=q?CATS:CATS.filter(c=>c[0]===ACAT);
- cats.forEach(c=>{let ops=[...(ORDER[c[0]]||[])];if(c[0]==='variables')vars(curSp()).forEach(v=>ops.unshift('VAR:'+v.name));if(c[0]==='lists')allLists(curSp()).forEach(l=>ops.unshift('LIST:'+l.name));if(c[0]==='myblocks')(PROJ.procs||[]).forEach(p=>{ops.push('procC_'+p.id);p.params.forEach((pm,i)=>ops.push('procA_'+p.id+'_'+i));});ops=ops.filter(palAllowed);
+ cats.forEach(c=>{let ops=[...(ORDER[c[0]]||[])];if(c[0]==='variables')vars(curSp()).forEach(v=>ops.unshift('VAR:'+v.name));if(c[0]==='lists')allLists(curSp()).forEach(l=>ops.unshift('LIST:'+l.name));if(c[0]==='myblocks')(PROJ.procs||[]).forEach(p=>{procMigrate(p);ops.push('procC_'+p.id);procInputs(p).forEach((pm,i)=>ops.push('procA_'+p.id+'_'+i));});ops=ops.filter(palAllowed);
    let items=ops.map(op=>({op,el:palBlock(op)})).filter(x=>x.el&&(!q||x.el.textContent.toLowerCase().includes(q)));
    if(!items.length&&!['variables','lists','myblocks'].includes(c[0]))return;const h=document.createElement('div');h.className='ph';h.style.color=CC[c[0]];h.textContent=c[1];box.appendChild(h);
    if(c[0]==='variables'){const mkb=document.createElement('button');mkb.className='mk';mkb.textContent='+ Make a Variable';mkb.onclick=makeVar;box.appendChild(mkb);}
@@ -704,6 +754,7 @@ function ctxMenu(e,b){$$('.ctx').forEach(x=>x.remove());const m=document.createE
  function close(){m.remove();removeEventListener('pointerdown',out,true);}
  function out(ev){if(!m.contains(ev.target))close();}
  const add=(l,f)=>{const bt=document.createElement('button');bt.textContent=l;bt.onclick=()=>{close();f();};m.appendChild(bt);};
+ const pm=(b.op||'').match(/^proc[CD]_(.+)$/);if(pm){const proc=(PROJ.procs||[]).find(x=>x.id===pm[1]);if(proc)add('Edit block',()=>openProcBuilder(proc));}
  add('Duplicate',()=>{pushU();const s=scOf(b);if(!s)return;const i=s.stack.indexOf(b);const cp=(i>=0?s.stack.slice(i):[b]).map(clone);editT().scripts.push({id:uid('sc'),x:s.x+26,y:s.y+26,stack:cp});sched();save();});add('Delete block',()=>{pushU();delBlk(b);sched();save();});add('Delete script',()=>{pushU();const s=scOf(b);if(s)editT().scripts=editT().scripts.filter(x=>x!==s);sched();save();});document.body.appendChild(m);
  const vw=innerWidth,mr=m.getBoundingClientRect();if(mr.right>vw)m.style.left=(vw-mr.width-6)+'px';if(mr.bottom>innerHeight)m.style.top=(innerHeight-mr.height-6)+'px';
  setTimeout(()=>addEventListener('pointerdown',out,true),0);}
@@ -1002,6 +1053,7 @@ function dismissOv(id){closeOv(id);
     else if(id==='ovAcct')acctResolve=null;
     else if(id==='ovPaint')paintCb=null;
     else if(id==='ovSound')stopRecCleanup();
+    else if(id==='ovProc')procDraft=null;
     else if(id==='ovGal')galCb=null;
   }catch(e){}}
 /* click the dark backdrop (outside the sheet) to close any popup */
