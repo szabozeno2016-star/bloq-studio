@@ -424,6 +424,13 @@ D.data_set={c:'variables',s:'stack',p:['set ',M('V','',c=>vars(c&&c.sp).map(v=>v
 D.data_change={c:'variables',s:'stack',p:['change ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' by ',N('N',1)],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.val=toNum(v.val)+toNum(c.a(b,'N'));}};
 D.data_showv={c:'variables',s:'stack',p:['show var ',M('V','',c=>vars(c&&c.sp).map(v=>v.name))],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.mon=1;}};
 D.data_hidev={c:'variables',s:'stack',p:['hide var ',M('V','',c=>vars(c&&c.sp).map(v=>v.name))],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.mon=0;}};
+/* saving / loading — persists to this browser so progress (e.g. a cookie count) survives a reload */
+D.data_save={c:'variables',s:'stack',p:['save ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' 💾'],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)saveKV(c.field(b,'V'),v.val);}};
+D.data_load={c:'variables',s:'stack',p:['load ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' 💾'],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v){const s=loadKV(c.field(b,'V'));if(s!==null)v.val=s;}}};
+D.data_saveas={c:'variables',s:'stack',p:['save ',T('X','value'),' as ',T('K','slot')],*r(c,b){saveKV(''+c.a(b,'K'),c.a(b,'X'));}};
+D.data_saved={c:'variables',s:'rep',p:['saved ',T('K','slot')],g(c,b){const s=loadKV(''+c.a(b,'K'));return s===null?'':s;}};
+D.data_hassave={c:'variables',s:'bool',p:['has save ',T('K','slot'),'?'],g(c,b){return loadKV(''+c.a(b,'K'))!==null;}};
+D.data_delsave={c:'variables',s:'stack',p:['delete save ',T('K','slot')],*r(c,b){delKV(''+c.a(b,'K'));}};
 /* ---- extra Scratch blocks ---- */
 def('looks_chfx',{c:'looks',s:'stack',p:['change ',M('E','ghost',()=>['ghost','brightness','color']),' effect by ',N('N',25)],*r(c,b){const e=c.field(b,'E');c.sp.fx[e]=(c.sp.fx[e]||0)+c.a(b,'N');}});
 def('looks_setfx',{c:'looks',s:'stack',p:['set ',M('E','ghost',()=>['ghost','brightness','color']),' effect to ',N('N',0)],*r(c,b){c.sp.fx[c.field(b,'E')]=c.a(b,'N');}});
@@ -460,6 +467,9 @@ def('data_lenlist',{c:'lists',s:'rep',p:['length of ',M('L','',c=>allLists(c&&c.
 def('data_listhas',{c:'lists',s:'bool',p:[M('L','',c=>allLists(c&&c.sp).map(l=>l.name)),' contains ',T('IT','thing'),'?'],g(c,b){const l=fList(c.sp,c.field(b,'L'));return l?l.items.some(x=>''+x===''+c.a(b,'IT')):false;}});
 def('data_showlist',{c:'lists',s:'stack',p:['show list ',M('L','',c=>allLists(c&&c.sp).map(l=>l.name))],*r(c,b){const l=fList(c.sp,c.field(b,'L'));if(l)l.mon=1;}});
 def('data_hidelist',{c:'lists',s:'stack',p:['hide list ',M('L','',c=>allLists(c&&c.sp).map(l=>l.name))],*r(c,b){const l=fList(c.sp,c.field(b,'L'));if(l)l.mon=0;}});
+/* text <-> list: build/parse structured data (CSV/JSON-lite) so a whole list can be saved as one string */
+def('data_split',{c:'lists',s:'stack',p:['set ',M('L','',c=>allLists(c&&c.sp).map(l=>l.name)),' to ',T('S','a,b,c'),' split by ',T('D',',')],*r(c,b){const l=fList(c.sp,c.field(b,'L'));if(!l)return;const s=''+c.a(b,'S'),d=''+c.a(b,'D');l.items=s===''?[]:(d===''?s.split(''):s.split(d));}});
+def('data_listjoin',{c:'lists',s:'rep',p:['join ',M('L','',c=>allLists(c&&c.sp).map(l=>l.name)),' by ',T('D',',')],g(c,b){const l=fList(c.sp,c.field(b,'L'));return l?l.items.join(''+c.a(b,'D')):'';}});
 /* Pen */
 const PEN_COLS={red:'#e94b4b',orange:'#f6a13c',yellow:'#ffd23f',green:'#3fbf4f',blue:'#1a5cff',purple:'#9b5cff',pink:'#ff5a8a',black:'#20233a',white:'#ffffff'};
 const penCv=document.createElement('canvas');penCv.width=480;penCv.height=360;const PCTX=penCv.getContext('2d');
@@ -479,6 +489,7 @@ def('sensing_loudness',{c:'sensing',s:'rep',p:['loudness'],g:()=>micLoudness()})
 def('sensing_username',{c:'sensing',s:'rep',p:['username'],g:()=>ACCT?ACCT.name:'Player'});
 def('sensing_dayssince2000',{c:'sensing',s:'rep',p:['days since 2000'],g:()=>r2((Date.now()-946684800000)/86400000)});
 def('sensing_dragmode',{c:'sensing',s:'stack',p:['set drag mode ',M('M','draggable',()=>['draggable','not draggable'])],*r(c,b){c.sp.draggable=c.field(b,'M')==='draggable'?1:0;}});
+def('sensing_isclone',{c:'sensing',s:'bool',p:['is a clone?'],g:c=>!!c.sp.clone});
 /* mic loudness (lazy — asks for the mic only when a loudness block actually runs) */
 let MIC=null,micData=null;
 function initMic(){if(MIC!==null)return;MIC=0;try{if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{const a=actx(),src=a.createMediaStreamSource(st),an=a.createAnalyser();an.fftSize=512;src.connect(an);micData=new Uint8Array(an.fftSize);MIC=an;}).catch(()=>{MIC=0;});}catch(e){MIC=0;}}
@@ -513,6 +524,11 @@ const curSp=()=>PROJ.sprites.find(s=>s.id===PROJ.cur&&!s.clone)||PROJ.sprites.fi
 const editT=()=>PROJ.cur==='stage'?PROJ.stage:curSp();
 const vars=sp=>[...PROJ.stage.vars,...(sp&&sp.vars||[])];
 const fVar=(sp,n)=>(sp&&sp.vars.find(v=>v.name===n))||PROJ.stage.vars.find(v=>v.name===n);
+/* persistent key/value store (per browser) backing the save/load blocks */
+const kvKey=k=>'bloq.kv:'+k;
+function saveKV(k,val){try{LS.s(kvKey(''+k),JSON.stringify({v:val}));}catch(e){}}
+function loadKV(k){try{const raw=LS.g(kvKey(''+k));if(raw==null)return null;const o=JSON.parse(raw);return o&&Object.prototype.hasOwnProperty.call(o,'v')?o.v:null;}catch(e){return null;}}
+function delKV(k){try{localStorage.removeItem(kvKey(''+k));}catch(e){}}
 const sndNames=sp=>{const s=sp||curSp();const n=((s&&s.sounds)||[]).map(x=>x.name);return n.length?n:['pop'];};
 
 /* ---------- RUNTIME (generator threads) ---------- */
