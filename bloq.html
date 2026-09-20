@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bloq Studio</title>
 <meta name="description" content="A blocky, arcade-styled Scratch-familiar coding studio with a live runtime and secret one-tap games.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +71,17 @@ input,select{font-family:inherit;font-weight:800}
 .slot{background:#fff;color:#20233a;border:2px solid var(--edge);min-width:26px;text-align:center;padding:2px 6px;font-weight:900;font-size:12px;outline:none}
 .slot.n{border-radius:0}
 .sel{background:#fff;color:#20233a;border:2px solid var(--edge);padding:2px 4px;font-weight:900;font-size:11px}
+/* Scratch-style dropdown menu */
+.mdd{display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.18);color:#fff;border:0;border-radius:13px;padding:3px 8px;font-weight:900;font-size:11.5px;cursor:pointer;line-height:1.3;white-space:nowrap}
+.mdd .cae{font-size:8px;opacity:.95;transform:translateY(1px)}
+.mdd.pal{cursor:grab}
+.mddpop{position:fixed;z-index:4000;border:1px solid rgba(0,0,0,.35);border-radius:8px;box-shadow:0 6px 20px rgba(20,20,40,.5);padding:5px;min-width:110px;max-height:220px;overflow-y:auto;color:#fff;font-weight:900;font-size:12.5px}
+.mddopt{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.mddopt:hover{background:rgba(255,255,255,.22)}
+.mddopt.on{background:rgba(0,0,0,.22)}
+.mddpop.light .mddopt:hover{background:rgba(0,0,0,.13)}
+.mddpop.light .mddopt.on{background:rgba(0,0,0,.13)}
+.mddopt .tick{width:12px;text-align:center;flex:none}
 .bsl{display:inline-block;min-width:26px;min-height:20px;background:rgba(0,0,0,.22);border:2px solid var(--edge)}
 .emb{display:inline-flex}
 .cwrap{display:flex;flex-direction:column}
@@ -733,12 +747,39 @@ function renderC(b,d,col,o){const w=document.createElement('div');w.className='c
  const f=document.createElement('div');f.className='cfoot';f.style.background=col;w.appendChild(f);return w;}
 function branch(b,n,col,o){const br=document.createElement('div');br.className='cbr';br.style.borderColor='var(--edge)';const sl=document.createElement('div');sl.className='sstack mouth';const st=b.inputs[n]||(b.inputs[n]=[]);renderInto(sl,st,o);if(!o.pal)META.set(sl,{t:'mouth',arr:st,b});br.appendChild(sl);return br;}
 function renderInto(cont,st,o){st.forEach((blk,i)=>{const el=render(blk,o);if(!o.pal){const m=META.get(el.classList.contains('cwrap')?el.querySelector('.blk'):el);if(m){m.arr=st;m.idx=i;}}cont.appendChild(el);});}
-function parts(el,sp,b,col,o){sp.forEach(pt=>{if(typeof pt==='string'){const s=document.createElement('span');s.textContent=pt;el.appendChild(s);return;}if(pt.t==='s')return;if(pt.t==='arg'){el.appendChild(argChip(pt,o));return;}if(pt.t==='m'){el.appendChild(mSel(b,pt,o));return;}if(pt.t==='b'){el.appendChild(bSlot(b,pt.i,o));return;}el.appendChild(vSlot(b,pt,o));});}
+function parts(el,sp,b,col,o){sp.forEach(pt=>{if(typeof pt==='string'){const s=document.createElement('span');s.textContent=pt;el.appendChild(s);return;}if(pt.t==='s')return;if(pt.t==='arg'){el.appendChild(argChip(pt,o));return;}if(pt.t==='m'){el.appendChild(mSel(b,pt,o,col));return;}if(pt.t==='b'){el.appendChild(bSlot(b,pt.i,o));return;}el.appendChild(vSlot(b,pt,o));});}
 /* a parameter shown inside a "define" hat — drag it to drop a copy of that argument reporter into the definition (like Scratch) */
 function argChip(pt,o){const tmpl=mkBlock(pt.op);const chip=render(tmpl,{pal:1});chip.classList.add('argchip');if(!o.pal){chip.style.cursor='grab';chip.addEventListener('pointerdown',e=>{if(e.button)return;e.stopPropagation();palDrag(e,tmpl);});}return chip;}
 function vSlot(b,pt,o){const v=b.inputs[pt.i];if(v&&typeof v==='object'&&v.op){const s=document.createElement('span');s.className='emb';s.appendChild(render(v,o));if(!o.pal)META.set(s,{t:'slot',b,n:pt.i,k:'v'});return s;}const inp=document.createElement('input');inp.className='slot '+(pt.t==='n'?'n':'');inp.value=v==null?'':v;inp.style.width=Math.max(1,(''+inp.value).length)*8+14+'px';inp.addEventListener('input',()=>{inp.style.width=Math.max(1,inp.value.length)*8+14+'px';});inp.addEventListener('change',()=>{b.inputs[pt.i]=inp.value;save();});inp.addEventListener('pointerdown',e=>e.stopPropagation());if(o.pal)inp.readOnly=1;else META.set(inp,{t:'slot',b,n:pt.i,k:'v'});return inp;}
 function bSlot(b,n,o){const v=b.inputs[n];if(v&&typeof v==='object'&&v.op){const s=document.createElement('span');s.className='emb';s.appendChild(render(v,o));if(!o.pal)META.set(s,{t:'slot',b,n,k:'b'});return s;}const s=document.createElement('span');s.className='bsl';if(!o.pal)META.set(s,{t:'slot',b,n,k:'b'});return s;}
-function mSel(b,pt,o){const s=document.createElement('select');s.className='sel';let opts=menu(b.op,pt.i),cur=b.fields[pt.i];const list=opts.length?opts:[cur];if(cur&&!list.includes(cur))list.unshift(cur);list.forEach(x=>{const op=document.createElement('option');op.value=x;op.textContent=ml(x);s.appendChild(op);});s.value=cur;s.addEventListener('pointerdown',e=>e.stopPropagation());s.addEventListener('change',()=>{b.fields[pt.i]=s.value;save();});if(o.pal)s.disabled=1;return s;}
+/* Scratch-style dropdown: a colored pill that opens a popup menu with a ✓ on the current item */
+const hexLum=h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return 0;const n=parseInt(m[1],16);const r=(n>>16)&255,g=(n>>8)&255,bl=n&255;return(0.299*r+0.587*g+0.114*bl)/255;};
+function mSel(b,pt,o,col){const pill=document.createElement('button');pill.type='button';pill.className='mdd'+(o.pal?' pal':'');
+ if(hexLum(col)>0.62)pill.style.color='#20233a';
+ const lbl=document.createElement('span');lbl.textContent=ml(b.fields[pt.i]);const car=document.createElement('span');car.className='cae';car.textContent='▾';pill.append(lbl,car);
+ if(o.pal)return pill;
+ pill.addEventListener('pointerdown',e=>e.stopPropagation());
+ pill.addEventListener('click',e=>{e.stopPropagation();openMenu(pill,b,pt,col||'#888',lbl);});
+ return pill;}
+let MENU_CLEANUP=null;
+function closeMenu(){if(MENU_CLEANUP){MENU_CLEANUP();MENU_CLEANUP=null;}}
+function openMenu(pill,b,pt,col,lbl){closeMenu();
+ let opts=menu(b.op,pt.i);const cur=b.fields[pt.i];const list=opts.length?opts.slice():[];if(cur&&!list.includes(cur))list.unshift(cur);if(!list.length)list.push(cur||'');
+ const light=hexLum(col)>0.62;const pop=document.createElement('div');pop.className='mddpop'+(light?' light':'');pop.style.background=col;if(light)pop.style.color='#20233a';
+ list.forEach(x=>{const row=document.createElement('div');row.className='mddopt'+(x===cur?' on':'');
+   const tk=document.createElement('span');tk.className='tick';tk.textContent=(x===cur?'✓':'');const tx=document.createElement('span');tx.textContent=ml(x);row.append(tk,tx);
+   row.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();b.fields[pt.i]=x;lbl.textContent=ml(x);save();closeMenu();});
+   pop.appendChild(row);});
+ document.body.appendChild(pop);
+ const r=pill.getBoundingClientRect();let x=r.left,y=r.bottom+4;const pw=pop.offsetWidth,ph=pop.offsetHeight;
+ if(x+pw>innerWidth-6)x=innerWidth-6-pw;if(x<6)x=6;if(y+ph>innerHeight-6)y=r.top-4-ph;if(y<6)y=6;
+ pop.style.left=Math.round(x)+'px';pop.style.top=Math.round(y)+'px';
+ const onDoc=e=>{if(!pop.contains(e.target))closeMenu();};
+ const onKey=e=>{if(e.key==='Escape')closeMenu();};
+ const onScroll=()=>closeMenu();
+ setTimeout(()=>{document.addEventListener('pointerdown',onDoc,true);document.addEventListener('keydown',onKey,true);},0);
+ window.addEventListener('scroll',onScroll,true);
+ MENU_CLEANUP=()=>{document.removeEventListener('pointerdown',onDoc,true);document.removeEventListener('keydown',onKey,true);window.removeEventListener('scroll',onScroll,true);pop.remove();};}
 const ml=x=>({_mouse_:'mouse',_edge_:'edge',_random_:'random',_myself_:'myself'}[x]||x);
 
 /* ---------- WORKSPACE + DRAG ---------- */
