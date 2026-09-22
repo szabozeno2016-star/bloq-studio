@@ -343,6 +343,7 @@ input,select{font-family:inherit;font-weight:800}
    <div id="sndRecBox" style="display:none;margin-top:14px;border-top:3px solid var(--edge);padding-top:12px"><div id="sndRecUI"></div></div>
   </div></div></div>
 <div class="ov" id="ovWave"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#127899; SOUND EDITOR &mdash; <span id="waveName">sound</span></h2><div class="sp" style="flex:1"></div><button class="btn ico" id="waveX">&#10005;</button></div><div class="sbody"><canvas id="waveCv" width="600" height="150" style="width:100%;height:150px;border:3px solid var(--edge);background:#0d1330;cursor:crosshair;touch-action:none;box-shadow:var(--sh)"></canvas><div style="color:var(--muted);font-weight:800;font-size:11px;margin-top:6px">Drag on the wave to select a section &middot; <span id="waveInfo"></span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn prim" id="wavePlay">&#9654; Play</button><button class="btn" id="waveSel">Play selection</button><button class="btn" id="waveTrim">&#9986; Trim to selection</button><button class="btn" id="waveFadeIn">Fade in</button><button class="btn" id="waveFadeOut">Fade out</button></div><div style="font-weight:900;font-size:11px;color:var(--muted);margin:12px 0 4px">EFFECTS</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" id="fxRobot">&#129302; Robot</button><button class="btn" id="fxEcho">&#128266; Echo</button><button class="btn" id="fxFaster">&#9193; Faster / higher</button><button class="btn" id="fxSlower">&#9194; Slower / lower</button><button class="btn" id="fxReverse">&#9664; Reverse</button><button class="btn" id="fxLouder">&#128227; Louder</button><button class="btn" id="waveUndo">&#8634; Undo</button></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" id="waveCancel">Cancel</button><button class="btn prim" id="waveSave">&#10003; Save sound</button></div></div></div></div>
+<div class="ov" id="ovTree"><div class="sheet" style="max-width:520px"><div class="shead"><h2 style="font-size:12px">&#127795; REMIX TREE</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="treeX">&#10005;</button></div><div class="sbody"><div id="treeNote" style="color:var(--muted);font-weight:800;font-size:11px;margin-bottom:10px"></div><div id="treeBody"></div></div></div></div>
 <div class="ov" id="ovProc"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#129513; MAKE A BLOCK</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="procX">&#10005;</button></div>
   <div class="sbody">
    <div id="procDelWrap" style="text-align:center;margin-bottom:6px;display:none"><button id="procDel" title="Delete this block" style="border:0;background:transparent;font-size:20px;cursor:pointer">&#128465;</button></div>
@@ -461,8 +462,8 @@ def('op_round',{c:'operators',s:'rep',p:['round ',N('A','')],g:(c,b)=>Math.round
 def('op_abs',{c:'operators',s:'rep',p:['abs ',N('A','')],g:(c,b)=>Math.abs(toNum(c.a(b,'A')))});
 /* variables */
 D.data_var={c:'variables',s:'rep',dyn:1,g(c,b){const v=fVar(c.sp,b.fields.V);return v?v.val:0;}};
-D.data_set={c:'variables',s:'stack',p:['set ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' to ',T('N','0')],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.val=c.a(b,'N');}};
-D.data_change={c:'variables',s:'stack',p:['change ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' by ',N('N',1)],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.val=toNum(v.val)+toNum(c.a(b,'N'));}};
+D.data_set={c:'variables',s:'stack',p:['set ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' to ',T('N','0')],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v){v.val=c.a(b,'N');if(v.cloud)cloudMark();}}};
+D.data_change={c:'variables',s:'stack',p:['change ',M('V','',c=>vars(c&&c.sp).map(v=>v.name)),' by ',N('N',1)],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v){v.val=toNum(v.val)+toNum(c.a(b,'N'));if(v.cloud)cloudMark();}}};
 D.data_showv={c:'variables',s:'stack',p:['show var ',M('V','',c=>vars(c&&c.sp).map(v=>v.name))],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.mon=1;}};
 D.data_hidev={c:'variables',s:'stack',p:['hide var ',M('V','',c=>vars(c&&c.sp).map(v=>v.name))],*r(c,b){const v=fVar(c.sp,c.field(b,'V'));if(v)v.mon=0;}};
 /* saving / loading — persists to this browser so progress (e.g. a cookie count) survives a reload */
@@ -746,7 +747,7 @@ function mons(){MONS=[];let y=6;
  PROJ.stage.vars.forEach(v=>{if(v.mon)dr(v);});const sp=curSp();(sp&&sp.vars||[]).forEach(v=>{if(v.mon)dr(v);});}
 function cvpt(e){const r=cv.getBoundingClientRect();return{cx:(e.clientX-r.left)/r.width*480,cy:(e.clientY-r.top)/r.height*360};}
 function monAt(cx,cy){return MONS.find(m=>cx>=m.x&&cx<=m.x+m.w&&cy>=m.y&&cy<=m.y+m.h);}
-function setSlider(e,m){const{cx}=cvpt(e);const fr=clamp((cx-m.tx)/m.tw,0,1);m.v.val=Math.round(m.smin+fr*(m.smax-m.smin));draw();}
+function setSlider(e,m){const{cx}=cvpt(e);const fr=clamp((cx-m.tx)/m.tw,0,1);m.v.val=Math.round(m.smin+fr*(m.smax-m.smin));if(m.v.cloud&&typeof cloudMark==='function')cloudMark();draw();}
 function spt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*480-240,y:180-(e.clientY-r.top)/r.height*360};}
 cv.addEventListener('pointermove',e=>{const p=spt(e);IO.mx=clamp(p.x,-240,240);IO.my=clamp(p.y,-180,180);});
 cv.addEventListener('pointerdown',e=>{const cp=cvpt(e);const sm=MONS.find(m=>m.tx!=null&&cp.cy>=m.ty-9&&cp.cy<=m.ty+9&&cp.cx>=m.tx-7&&cp.cx<=m.tx+m.tw+7);if(sm){MONDRAG=sm;setSlider(e,sm);return;}IO.md=1;if(monAt(cp.cx,cp.cy))return;const p=spt(e);ensure();const hit=[...PROJ.sprites].reverse().find(s=>s.vis&&Math.hypot(p.x-s.x,p.y-s.y)<s.size/100*22);if(hit)(hit.scripts||[]).forEach(sc=>{const h=sc.stack[0];if(h&&D[h.op]&&D[h.op].hat==='click')startThread(hit,sc.stack.slice(1),sc.id);});else startHats('stageclick');});
@@ -970,11 +971,15 @@ function sprCtx(e,s){$$('.ctx').forEach(x=>x.remove());const m=document.createEl
 /* ---------- SPRITES / VARS ---------- */
 function makeVar(){$('#askT').textContent='NEW VARIABLE';
  $('#askBody').innerHTML='<input id="askField" placeholder="name e.g. score" style="width:100%;border:3px solid var(--edge);background:var(--panel2);padding:9px;color:var(--ink);font-weight:900">'
-  +'<label style="display:flex;gap:7px;align-items:center;margin-top:11px;font-weight:800;font-size:12px;cursor:pointer"><input type="checkbox" id="askLocal"> For this sprite only</label>';
- const inp=$('#askField');inp.value='';askCb=v=>{const n=(v||'').trim();if(!n)return;const local=!!($('#askLocal')&&$('#askLocal').checked);addVar(n,0,1,local);toast('Variable "'+n+'" created'+(local?' · this sprite only':''));};
+  +'<label style="display:flex;gap:7px;align-items:center;margin-top:11px;font-weight:800;font-size:12px;cursor:pointer"><input type="checkbox" id="askLocal"> For this sprite only</label>'
+  +'<label style="display:flex;gap:7px;align-items:center;margin-top:7px;font-weight:800;font-size:12px;cursor:pointer"><input type="checkbox" id="askCloud"> &#9729; Cloud variable (shared live with all players)</label>'
+  +'<div id="askCloudNote" style="color:var(--muted);font-size:10px;font-weight:800;margin-top:4px;line-height:1.4"></div>';
+ const inp=$('#askField');inp.value='';
+ const cc=$('#askCloud'),lc=$('#askLocal');if(cc)cc.onchange=()=>{if(cc.checked&&lc)lc.checked=false;$('#askCloudNote').textContent=cc.checked?(DB?'Great for shared high-scores or simple multiplayer. Updates are capped at 10/sec.':'Cloud sync needs the online version (Artifact or a Firebase-connected build) — here it will act as a normal variable.'):'';};
+ askCb=v=>{const n=(v||'').trim();if(!n)return;const cloud=!!(cc&&cc.checked);const local=!cloud&&!!(lc&&lc.checked);const nm=cloud?('☁ '+n):n;addVar(nm,0,1,local,cloud);toast('Variable "'+nm+'" created'+(cloud?' · cloud':local?' · this sprite only':''));};
  $('#askOkB').textContent='OK';$('#askCancel').style.display='';openOv('ovAsk');setTimeout(()=>{inp.focus();inp.select();},30);inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();doAsk();}};}
 function makeList(){askText('New list name','items',n=>{n=(n||'').trim();if(!n)return;if(allLists(curSp()).some(l=>l.name===n))return;PROJ.stage.lists.push({name:n,items:[],mon:1});ACAT='lists';renderPal();draw();save();toast('List "'+n+'" created');});}
-function addVar(name,val,mon,local){const tgt=local?curSp():PROJ.stage;const dupIn=local?tgt.vars:vars(curSp());if(dupIn.some(v=>v.name===name))return fVar(curSp(),name);const v={name,val:val||0,mon:mon?1:0};tgt.vars.push(v);renderPal();draw();save();return v;}
+function addVar(name,val,mon,local,cloud){const tgt=(local&&!cloud)?curSp():PROJ.stage;const dupIn=(local&&!cloud)?tgt.vars:vars(curSp());if(dupIn.some(v=>v.name===name))return fVar(curSp(),name);const v={name,val:val||0,mon:mon?1:0};if(cloud){v.cloud=1;PROJ.cloudId=PROJ.cloudId||('cld_'+uid('')+Math.random().toString(36).slice(2,7));}tgt.vars.push(v);renderPal();draw();save();if(cloud)cloudInit();return v;}
 function renderSpr(){const L=$('#slist');L.innerHTML='';PROJ.sprites.filter(s=>!s.clone).forEach(s=>{const c=document.createElement('div');c.className='spc'+(s.id===PROJ.cur?' on':'');const cn=document.createElement('canvas');cn.width=58;cn.height=42;thumb(cn,s);const nm=document.createElement('div');nm.className='n';nm.textContent=s.name;const x=document.createElement('button');x.className='x';x.textContent='×';x.onclick=ev=>{ev.stopPropagation();delSpr(s);};c.append(cn,nm,x);c.onclick=()=>selSpr(s.id);c.oncontextmenu=e=>{e.preventDefault();sprCtx(e,s);};L.appendChild(c);});
  const st=document.createElement('div');st.className='spc'+(PROJ.cur==='stage'?' on':'');const cn=document.createElement('canvas');cn.width=58;cn.height=42;const g=cn.getContext('2d');const sbd=PROJ.stage.cos[PROJ.stage.cn];if(sbd.grad){const gr=g.createLinearGradient(0,0,0,42);gr.addColorStop(0,sbd.grad[0]);gr.addColorStop(1,sbd.grad[1]);g.fillStyle=gr;}else g.fillStyle=sbd.fill||'#8fd3ff';g.fillRect(0,0,58,42);if(sbd.art){g.save();g.translate(29,21);drawArt(g,sbd.art,7);g.restore();}g.strokeStyle='#20233a';g.lineWidth=3;g.strokeRect(0,0,58,42);const nm=document.createElement('div');nm.className='n';nm.textContent='Stage';st.append(cn,nm);st.onclick=()=>selSpr('stage');L.appendChild(st);
  const ad=document.createElement('div');ad.className='add';ad.textContent='+';ad.onclick=addSpr;L.appendChild(ad);renderProps();}
@@ -1250,7 +1255,7 @@ $('#mode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b
 $('#full').onclick=()=>{$('#stbox').classList.toggle('big');draw();};
 /* fullscreen PLAY mode — reparents the real stage canvas so the running game fills the screen */
 $('#play').onclick=enterPlay;$('#pexit').onclick=exitPlay;$('#pflag').onclick=greenFlag;
-function enterPlay(){$('#ptitle').textContent=(PROJ.name||'PLAY').toUpperCase();$('#pstageInner').appendChild(cv);$('#playov').classList.add('on');PLAYTRACK=1;PLAYMAX=0;PLAYGAME=PROJ.name||'Game';try{const el=$('#playov');if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});}catch(e){}greenFlag();}
+function enterPlay(){$('#ptitle').textContent=(PROJ.name||'PLAY').toUpperCase();$('#pstageInner').appendChild(cv);$('#playov').classList.add('on');PLAYTRACK=1;PLAYMAX=0;PLAYGAME=PROJ.name||'Game';try{cloudInit();}catch(e){}try{const el=$('#playov');if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});}catch(e){}greenFlag();}
 function exitPlay(){stopEvery();try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();}catch(e){}$('#stbox').insertBefore(cv,$('#ask'));$('#playov').classList.remove('on');draw();if(PLAYTRACK){PLAYTRACK=0;if(PLAYMAX>0)submitScore(PLAYGAME,PLAYMAX);}if(playOrigin==='home'){playOrigin='editor';showHome();}}
 /* character gallery */
 let galCb=null;
@@ -1487,7 +1492,7 @@ const STARTERS=[
  {b:'g_plat',title:'Jump Quest',author:'MegaMint',art:'frog',bg:'#bfe9a0',bn:'grass'}];
 let VIEW_HOME=0,playOrigin='editor',DRAFT=null;
 function showHome(){$('.app').style.display='none';$('#playov').classList.remove('on');$('#profile').classList.remove('on');$('#home').classList.add('on');VIEW_HOME=1;$('#hcont').style.display=DRAFT?'':'none';renderAcctBox();renderHome();}
-function showEditor(){$('#home').classList.remove('on');$('.app').style.display='flex';VIEW_HOME=0;renderAll();}
+function showEditor(){$('#home').classList.remove('on');$('.app').style.display='flex';VIEW_HOME=0;renderAll();try{cloudInit();}catch(e){}}
 function drawPoster(cv,o){const x=cv.getContext('2d');x.imageSmoothingEnabled=false;const W=cv.width,H=cv.height;x.fillStyle=o.bg||'#8fd3ff';x.fillRect(0,0,W,H);
  if(o.bn==='space'||o.bn==='night'){x.fillStyle='#fff';for(let i=0;i<34;i++)x.fillRect((i*57)%W,(i*37)%H,2,2);}
  if(o.bn==='grass'){x.fillStyle='#5bc16b';x.fillRect(0,H-16,W,16);}
@@ -1539,16 +1544,18 @@ function drawCover(cv,g){const c=(g.cover)||{};
 function makeCard(g){const c=document.createElement('div');c.className='card2';const cv=document.createElement('canvas');cv.width=176;cv.height=120;drawCover(cv,g);
  const info=document.createElement('div');info.className='c2i';const meta=document.createElement('div');meta.className='c2meta';
  const t=document.createElement('div');t.className='c2t';t.textContent=g.title||'Untitled';
+ let rl=null;if(g.remixOf&&g.remixOfTitle){rl=document.createElement('div');rl.style.cssText='color:var(--muted);font-size:9px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';rl.textContent='↳ remix of '+g.remixOfTitle;}
  const row2=document.createElement('div');row2.style.cssText='display:flex;gap:8px;align-items:center';
  const a=document.createElement('span');a.className='c2a';a.textContent='by '+(g.author||'Player');a.onclick=e=>{e.stopPropagation();openProfile(g.author||'Player',g.authorAvatar||g.art);};
  const pl=document.createElement('span');pl.className='plays';pl.textContent='▶ '+kfmt(playsOf(g));
- row2.append(a,pl);meta.append(t,row2);
+ row2.append(a,pl);meta.append(t);if(rl)meta.append(rl);meta.append(row2);
  const lb=document.createElement('button');lb.className='likebtn'+(LIKED.has(gk(g))?' on':'');lb.innerHTML='♥ '+kfmt(likesOf(g));
  lb.onclick=e=>{e.stopPropagation();toggleLike(g);const on=LIKED.has(gk(g));lb.className='likebtn'+(on?' on':'');lb.innerHTML='♥ '+kfmt(likesOf(g));if(on){sfx(760);try{lb.animate([{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:260});}catch(_){}}};
  info.append(meta,lb);
  const play=document.createElement('div');play.className='plc';play.textContent='▶ Play';
  const rmx=document.createElement('button');rmx.className='rmx';rmx.textContent='Remix';
  c.append(cv,play,rmx,info);c.onclick=()=>launchGame(g,'play');rmx.onclick=e=>{e.stopPropagation();launchGame(g,'edit');};
+ if(g.kind==='post'&&g.id){const tr=document.createElement('button');tr.className='rmx';tr.style.cssText='top:auto;bottom:6px;left:6px;right:auto';tr.textContent='🌳 Tree';tr.title='Remix tree';tr.onclick=e=>{e.stopPropagation();openRemixTree(g);};c.appendChild(tr);}
  if(g.kind==='post'&&ACCT&&(g.authorId===ACCT.id||g.author===ACCT.name)){rmx.classList.add('owner');const del=document.createElement('button');del.className='trash';del.title='Delete your game';del.textContent='🗑';del.onclick=e=>{e.stopPropagation();askConfirm('Delete your game "'+(g.title||'Untitled')+'" for everyone? This cannot be undone.',()=>deleteGame(g));};c.appendChild(del);}
  return c;}
 function deleteGame(g){if(!(ACCT&&(g.authorId===ACCT.id||g.author===ACCT.name))){toast('You can only delete your own games');return;}
@@ -1563,7 +1570,23 @@ function launchGame(g,mode){
  else if(g.project){try{PROJ=JSON.parse(g.project);norm();PROJ.name=g.title||PROJ.name;}catch(e){toast('Could not load game');return;}}
  else return;
  stopEvery();
- if(mode==='edit'){save();showEditor();toast('Remixing — edit and Share your version!');}else{bumpPlay(g);playOrigin='home';enterPlay();}}
+ if(mode==='edit'){if(g.kind==='post'&&g.id){PROJ.remixOf=g.id;PROJ.remixOfTitle=g.title||'';PROJ.remixOfAuthor=g.author||'';}else{delete PROJ.remixOf;delete PROJ.remixOfTitle;delete PROJ.remixOfAuthor;}save();showEditor();toast('Remixing '+(g.title||'game')+' — edit and Share your version!');}else{bumpPlay(g);playOrigin='home';enterPlay();}}
+function openRemixTree(g){const list=[...dbGames,...loadLocalPosts()],map={};list.forEach(x=>{if(x.id&&!map[x.id])map[x.id]=x;});
+ let root=map[g.id]||g,seen=new Set();while(root.remixOf&&map[root.remixOf]&&!seen.has(root.id)){seen.add(root.id);root=map[root.remixOf];}
+ const kids={};list.forEach(x=>{if(x.remixOf){(kids[x.remixOf]=kids[x.remixOf]||[]).push(x);}});
+ const body=$('#treeBody');body.innerHTML='';let total=0;const drawn=new Set();
+ (function node(x,depth){if(drawn.has(x.id)||depth>12)return;drawn.add(x.id);total++;
+  const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 8px;margin-left:'+(depth*20)+'px;border-left:'+(depth?'3px solid var(--edge)':'0')+';background:'+(x.id===g.id?'var(--panel2)':'transparent')+'';
+  const cvn=document.createElement('canvas');cvn.width=48;cvn.height=32;cvn.style.cssText='border:2px solid var(--edge);flex:none;image-rendering:pixelated';try{drawCover(cvn,x);}catch(e){}
+  const info=document.createElement('div');info.style.cssText='flex:1;min-width:0';
+  info.innerHTML='<div style="font-weight:900;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(depth?'↳ ':'')+esc(x.title||'Untitled')+(x.id===g.id?' <span style="color:var(--accent)">◄ this one</span>':'')+'</div><div style="color:var(--muted);font-size:10px;font-weight:800">by '+esc(x.author||'Player')+' · ♥ '+kfmt(likesOf(x))+'</div>';
+  const pb=document.createElement('button');pb.className='btn';pb.style.cssText='font-size:11px;padding:4px 9px;flex:none';pb.textContent='▶';pb.title='Play';pb.onclick=()=>{closeOv('ovTree');launchGame(x,'play');};
+  row.append(cvn,info,pb);body.appendChild(row);
+  (kids[x.id]||[]).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).forEach(k=>node(k,depth+1));
+ })(root,0);
+ $('#treeNote').textContent=total<=1?'No remixes yet — be the first to remix this game!':(total+' versions in this family. The top is the original; each ↳ is a remix of the one above it.');
+ openOv('ovTree');}
+$('#treeX').onclick=()=>closeOv('ovTree');
 /* accounts */
 function loadAcct(){try{return JSON.parse(LS.g('bloq.account')||'null');}catch(e){return null;}}
 let ACCT=loadAcct();
@@ -1689,14 +1712,26 @@ async function initFirebase(){if(!FIREBASE_CONFIG||typeof FIREBASE_CONFIG!=='obj
  if(!window.firebase)return null;firebase.initializeApp(FIREBASE_CONFIG);return firebase.firestore();}catch(e){return null;}}
 async function initCommunity(){try{if(window.claude&&window.claude.use)DB=await window.claude.use('db');}catch(e){DB=null;}
  if(!DB){try{DB=await initFirebase();}catch(e){DB=null;}}
- if(DB){try{DB.collection('games').orderBy('createdAt','desc').limit(40).onSnapshot(snap=>{dbGames=snap.docs.map(d=>{const x=d.data()||{};return{id:d.id,title:x.title,author:x.author,authorId:x.authorId,authorAvatar:x.authorAvatar,project:x.project,cover:x.cover,likes:x.likes||0,plays:x.plays||0,createdAt:x.createdAt};});if(VIEW_HOME)renderCommunity();},e=>{DB=null;if(VIEW_HOME)renderCommunity();});
+ if(DB){try{DB.collection('games').orderBy('createdAt','desc').limit(40).onSnapshot(snap=>{dbGames=snap.docs.map(d=>{const x=d.data()||{};return{id:d.id,title:x.title,author:x.author,authorId:x.authorId,authorAvatar:x.authorAvatar,project:x.project,cover:x.cover,likes:x.likes||0,plays:x.plays||0,createdAt:x.createdAt,remixOf:x.remixOf||null,remixOfTitle:x.remixOfTitle||null,remixOfAuthor:x.remixOfAuthor||null};});if(VIEW_HOME)renderCommunity();},e=>{DB=null;if(VIEW_HOME)renderCommunity();});
    DB.collection('scores').orderBy('score','desc').limit(12).onSnapshot(snap=>{lbScores=snap.docs.map(d=>d.data()||{});if(VIEW_HOME)renderLeaderboard();},e=>{});
    try{DB.collection('users').limit(300).onSnapshot(snap=>{dbUsers=snap.docs.map(d=>({id:d.id,...(d.data()||{})}));},e=>{});}catch(e){}}catch(e){DB=null;}}
- if(VIEW_HOME){renderCommunity();renderLeaderboard();}}
+ if(VIEW_HOME){renderCommunity();renderLeaderboard();}
+ try{cloudInit();}catch(e){}}
+/* ---------- CLOUD VARIABLES (shared, rate-limited to 10 writes/sec) ---------- */
+let cloudSubId=null,cloudUnsub=null,cloudDirty=0,cloudTimer=0,cloudApplying=0;
+function cloudVars(){return (PROJ.stage.vars||[]).filter(v=>v.cloud);}
+function cloudInit(){if(!DB||!PROJ.cloudId||!cloudVars().length)return;
+ if(cloudSubId===PROJ.cloudId&&cloudUnsub)return;
+ if(cloudUnsub){try{cloudUnsub();}catch(e){}cloudUnsub=null;}
+ cloudSubId=PROJ.cloudId;
+ try{cloudUnsub=DB.doc('cloud/'+PROJ.cloudId).onSnapshot(snap=>{const d=(snap&&snap.data&&snap.data())||{},cv=d.vars||{};cloudApplying=1;cloudVars().forEach(v=>{if(!cloudDirty&&Object.prototype.hasOwnProperty.call(cv,v.name))v.val=cv[v.name];});cloudApplying=0;try{draw();}catch(e){}},e=>{});}catch(e){}
+ if(!cloudTimer)cloudTimer=setInterval(cloudFlush,100);}  /* 100ms flush = max 10 writes/sec, no matter how fast the game changes the value */
+function cloudMark(){if(!cloudApplying)cloudDirty=1;}
+function cloudFlush(){if(!cloudDirty||!DB||!PROJ.cloudId)return;cloudDirty=0;const vars={};cloudVars().forEach(v=>{vars[v.name]=v.val;});try{DB.doc('cloud/'+PROJ.cloudId).set({vars,at:Date.now()});}catch(e){}}
 function postGame(){const j=ser();if(j.length>200000){toast('Game is too big to post.');return;}
  ensureAccount(acct=>{openCover({art:mainArt(),bg:mainBg(),bn:mainBn(),title:(PROJ.name&&PROJ.name!=='Untitled')?PROJ.name:'My Game'},async cov=>{
    const title=((cov&&cov.title)||PROJ.name||'My Game').slice(0,40);
-   const doc={title,author:acct.name,authorId:acct.id,authorAvatar:acct.avatar,project:j,cover:cov||null,likes:0,plays:0,createdAt:Date.now()};
+   const doc={title,author:acct.name,authorId:acct.id,authorAvatar:acct.avatar,project:j,cover:cov||null,likes:0,plays:0,createdAt:Date.now(),remixOf:PROJ.remixOf||null,remixOfTitle:PROJ.remixOfTitle||null,remixOfAuthor:PROJ.remixOfAuthor||null};
    if(doc.cover&&doc.cover.img&&JSON.stringify(doc).length>250000){toast('Cover image too big — posting without it.');doc.cover.img=null;}
    PROJ.name=title;
    if(DB){try{await DB.collection('games').add(doc);toast('✓ Posted to the community!');}catch(e){saveLocalPost(doc);toast('Saved locally ('+((e&&e.code)||'offline')+')');}}
