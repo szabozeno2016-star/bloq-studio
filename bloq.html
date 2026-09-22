@@ -335,6 +335,7 @@ input,select{font-family:inherit;font-weight:800}
 <div class="ov" id="ovPause"><div class="sheet" style="max-width:340px"><div class="shead"><h2 style="font-size:12px">&#9208; PAUSED</h2></div><div class="sbody" style="display:grid;gap:9px"><button class="btn prim" id="pauseCont">&#9654; Continue</button><button class="btn" id="pauseLeave">&#8962; Leave to main menu</button><button class="btn" id="pausePost">&#10548; Post game</button><button class="btn" id="pauseSettings">&#9881; Settings</button></div></div></div>
 <div class="ov" id="ovSet"><div class="sheet" style="max-width:440px"><div class="shead"><h2 style="font-size:12px">&#9881; SETTINGS</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="setX">&#10005;</button></div><div class="sbody" id="setBody"></div></div></div>
 <div class="ov" id="ovPaint"><div class="sheet" style="max-width:540px"><div class="shead"><h2 style="font-size:12px">&#127912; PAINT A CHARACTER</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="paintX">&#10005;</button></div><div class="sbody"><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center"><canvas id="paintCv" width="288" height="288" style="border:3px solid var(--edge);image-rendering:pixelated;cursor:crosshair;touch-action:none;box-shadow:var(--sh)"></canvas><div style="display:grid;gap:8px;align-content:start"><div style="font-weight:900;font-size:11px;color:var(--muted)">COLORS</div><div id="paintPal" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:132px"></div><button class="btn" id="paintErase">&#9003; Eraser</button><button class="btn" id="paintClear">Clear all</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" id="paintCancel">Cancel</button><button class="btn prim" id="paintSave">&#10003; Use character</button></div></div></div></div>
+<div class="ov" id="ovVec"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#9998; VECTOR EDITOR</h2><div class="s" style="color:var(--muted)">crisp at any size &middot; drag the dots to reshape</div><div class="sp" style="flex:1"></div><button class="btn ico" id="vecX">&#10005;</button></div><div class="sbody"><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center"><canvas id="vecCv" width="320" height="320" style="border:3px solid var(--edge);cursor:crosshair;touch-action:none;box-shadow:var(--sh);background:#fff"></canvas><div style="display:grid;gap:7px;align-content:start;min-width:150px"><div style="font-weight:900;font-size:11px;color:var(--muted)">ADD SHAPE</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><button class="btn" data-vs="ellipse" style="font-size:11px">&#9679; Ellipse</button><button class="btn" data-vs="rect" style="font-size:11px">&#9646; Rect</button><button class="btn" data-vs="triangle" style="font-size:11px">&#9650; Triangle</button><button class="btn" data-vs="polygon" style="font-size:11px">&#11039; Polygon</button><button class="btn" data-vs="line" style="font-size:11px;grid-column:1/-1">&#9585; Line</button></div><div style="font-weight:900;font-size:11px;color:var(--muted);margin-top:4px">FILL</div><div id="vecPal" style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px"></div><label style="font-weight:800;font-size:11px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="vecStroke"> add outline</label><div style="display:flex;gap:6px"><button class="btn" id="vecAddPt" style="font-size:11px;flex:1">+ point</button><button class="btn" id="vecDelPt" style="font-size:11px;flex:1">&minus; point</button></div><button class="btn" id="vecDel" style="font-size:11px;background:var(--bad);color:#fff">Delete shape</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" id="vecCancel">Cancel</button><button class="btn prim" id="vecSave">&#10003; Use costume</button></div></div></div></div>
 <div class="ov" id="ovSound"><div class="sheet" style="max-width:560px"><div class="shead"><h2 style="font-size:12px">&#128266; SOUNDS &mdash; <span id="sndWho">Sprite</span></h2><div class="sp" style="flex:1"></div><button class="btn ico" id="sndX">&#10005;</button></div>
   <div class="sbody"><div id="sndList" style="display:grid;gap:8px;margin-bottom:14px"></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn prim" id="sndAdd">&#43; Sound library</button><button class="btn" id="sndRec">&#127908; Record a sound</button></div>
@@ -720,12 +721,14 @@ function draw(){const st=PROJ.stage,bd=st.cos[st.cn];X.save();X.clearRect(0,0,48
  X.drawImage(penCv,0,0);
  for(const s of PROJ.sprites){if(!s.clone){s.x=clamp(s.x,-240,240);s.y=clamp(s.y,-180,180);}}  /* Scratch-style fencing: keep sprites on the stage */
  for(const s of PROJ.sprites){if(!s.vis)continue;drawSp(s);}mons();drawLists();X.restore();}
+function drawCostume(ctx,co,cell){if(co&&co.svg){const img=svgImage(co.svg);if(img&&img.complete&&img.naturalWidth){const base=cell*8,iw=img.naturalWidth,ih=img.naturalHeight,scl=base/Math.max(iw,ih),sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=true;ctx.drawImage(img,-iw*scl/2,-ih*scl/2,iw*scl,ih*scl);ctx.imageSmoothingEnabled=sm;return;}}
+ drawArt(ctx,(co&&co.art)||'dog',cell);}
 function drawSp(s){const[px,py]=scr(s.x,s.y),co=s.cos[s.cn]||{},sc=s.size/100;const e=s.fx||{};X.save();
  X.globalAlpha=clamp(1-((e.ghost||0)+(s.ghost||0))/100,0,1);
  const br=e.brightness||0,col=e.color||0;if(br||col)X.filter='brightness('+clamp(1+br/100,0,3)+') hue-rotate('+(col*1.8)+'deg)';
  X.translate(px,py);let rot=0,fx=1;if(s.rot==='all')rot=(s.dir-90)*DEG;else if(s.rot==='lr')fx=s.dir<0?-1:1;X.rotate(rot);X.scale(sc*fx,sc);
- drawArt(X,co.art||'dog',4);X.restore();if(s.bub&&s.bub.x)bubble(px,py,sc,s.bub);}
-function stampSprite(s){PCTX.save();const[px,py]=scr(s.x,s.y);PCTX.translate(px,py);let rot=0,fx=1;if(s.rot==='all')rot=(s.dir-90)*DEG;else if(s.rot==='lr')fx=s.dir<0?-1:1;PCTX.rotate(rot);PCTX.scale(s.size/100*fx,s.size/100);PCTX.globalAlpha=clamp(1-((s.fx&&s.fx.ghost||0))/100,0,1);drawArt(PCTX,(s.cos[s.cn]||{}).art||'dog',4);PCTX.restore();}
+ drawCostume(X,co,4);X.restore();if(s.bub&&s.bub.x)bubble(px,py,sc,s.bub);}
+function stampSprite(s){PCTX.save();const[px,py]=scr(s.x,s.y);PCTX.translate(px,py);let rot=0,fx=1;if(s.rot==='all')rot=(s.dir-90)*DEG;else if(s.rot==='lr')fx=s.dir<0?-1:1;PCTX.rotate(rot);PCTX.scale(s.size/100*fx,s.size/100);PCTX.globalAlpha=clamp(1-((s.fx&&s.fx.ghost||0))/100,0,1);drawCostume(PCTX,s.cos[s.cn]||{},4);PCTX.restore();}
 function penUpdate(){for(const s of PROJ.sprites){if(s.pen&&s.pen.down){const ax=240+(s.pen.lx==null?s.x:s.pen.lx),ay=180-(s.pen.ly==null?s.y:s.pen.ly),bx=240+s.x,by=180-s.y;PCTX.strokeStyle=s.pen.color||'#1a5cff';PCTX.lineWidth=s.pen.size||4;PCTX.lineCap='round';PCTX.beginPath();PCTX.moveTo(ax,ay);PCTX.lineTo(bx,by);PCTX.stroke();s.pen.lx=s.x;s.pen.ly=s.y;}}}
 function drawLists(){let lx=360;const sp=curSp();const all=[...PROJ.stage.lists,...(sp&&sp.lists||[])].filter(l=>l.mon);all.forEach(l=>{X.font='900 10px Nunito';const items=l.items.slice(0,8);const h=18+items.length*13+12,w=104,x=lx,y=6;X.fillStyle='rgba(230,235,245,.95)';X.strokeStyle='#20233a';X.lineWidth=2;X.fillRect(x,y,w,h);X.strokeRect(x,y,w,h);X.fillStyle='#20233a';X.textBaseline='top';X.fillText(l.name,x+6,y+4);X.fillStyle='#ff661a';items.forEach((it,i)=>{X.fillStyle='#ff661a';X.fillRect(x+4,y+18+i*13,w-8,11);X.fillStyle='#fff';X.fillText((i+1)+' '+it,x+7,y+19+i*13);});if(l.items.length>8){X.fillStyle='#20233a';X.fillText('+'+(l.items.length-8)+' more',x+6,y+18+8*13);}X.fillStyle='#20233a';X.fillText('length '+l.items.length,x+6,y+h-11);lx-=w+8;});}
 function bubble(px,py,sc,b){X.save();X.font='900 13px Nunito';const lines=wrap(''+b.x,150),pad=6,fs=15,w=Math.max(...lines.map(l=>X.measureText(l).width))+pad*2,h=lines.length*fs+pad*2;let bx=clamp(px+20*sc,4,480-w-4),by=clamp(py-22*sc-h,4,360-h-4);X.fillStyle='#fff';X.strokeStyle='#20233a';X.lineWidth=3;X.fillRect(bx,by,w,h);X.strokeRect(bx,by,w,h);X.fillStyle='#20233a';X.textBaseline='top';lines.forEach((l,i)=>X.fillText(l,bx+pad,by+pad+i*fs));X.restore();}
@@ -974,7 +977,7 @@ function addVar(name,val,mon,local){const tgt=local?curSp():PROJ.stage;const dup
 function renderSpr(){const L=$('#slist');L.innerHTML='';PROJ.sprites.filter(s=>!s.clone).forEach(s=>{const c=document.createElement('div');c.className='spc'+(s.id===PROJ.cur?' on':'');const cn=document.createElement('canvas');cn.width=58;cn.height=42;thumb(cn,s);const nm=document.createElement('div');nm.className='n';nm.textContent=s.name;const x=document.createElement('button');x.className='x';x.textContent='×';x.onclick=ev=>{ev.stopPropagation();delSpr(s);};c.append(cn,nm,x);c.onclick=()=>selSpr(s.id);c.oncontextmenu=e=>{e.preventDefault();sprCtx(e,s);};L.appendChild(c);});
  const st=document.createElement('div');st.className='spc'+(PROJ.cur==='stage'?' on':'');const cn=document.createElement('canvas');cn.width=58;cn.height=42;const g=cn.getContext('2d');const sbd=PROJ.stage.cos[PROJ.stage.cn];if(sbd.grad){const gr=g.createLinearGradient(0,0,0,42);gr.addColorStop(0,sbd.grad[0]);gr.addColorStop(1,sbd.grad[1]);g.fillStyle=gr;}else g.fillStyle=sbd.fill||'#8fd3ff';g.fillRect(0,0,58,42);if(sbd.art){g.save();g.translate(29,21);drawArt(g,sbd.art,7);g.restore();}g.strokeStyle='#20233a';g.lineWidth=3;g.strokeRect(0,0,58,42);const nm=document.createElement('div');nm.className='n';nm.textContent='Stage';st.append(cn,nm);st.onclick=()=>selSpr('stage');L.appendChild(st);
  const ad=document.createElement('div');ad.className='add';ad.textContent='+';ad.onclick=addSpr;L.appendChild(ad);renderProps();}
-function thumb(cn,s){const g=cn.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cn.width,cn.height);g.save();g.translate(29,21);drawArt(g,(s.cos[s.cn]||{}).art||'dog',3);g.restore();}
+function thumb(cn,s){const g=cn.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,cn.width,cn.height);g.save();g.translate(29,21);drawCostume(g,s.cos[s.cn]||{},3);g.restore();}
 function renderProps(){const box=$('#props'),s=editT();
  if(s.stage){
   box.innerHTML='';
@@ -1006,9 +1009,9 @@ function renderProps(){const box=$('#props'),s=editT();
   addRow.append(addLib);wrap.appendChild(addRow);
   box.appendChild(wrap);
   return;}
- box.innerHTML='<div class="nm">Sprite <input id="pn" value="'+esc(s.name)+'" style="max-width:120px"><button class="chip" id="pskin" title="Change or paint character">🎨 '+esc(((s.cos[s.cn]||{}).art||'dog').startsWith('custom_')?'painted':(s.cos[s.cn]||{}).art||'dog')+'</button><button class="chip" id="psnd" title="Sounds">🔊 Sounds ('+((s.sounds||[]).length)+')</button></div><label>x</label><input id="px" type="number" value="'+Math.round(s.x)+'"><label>y</label><input id="py" type="number" value="'+Math.round(s.y)+'"><label>Size</label><input id="ps" type="number" value="'+Math.round(s.size)+'"><label>Dir</label><input id="pd" type="number" value="'+Math.round(s.dir)+'">';
+ box.innerHTML='<div class="nm">Sprite <input id="pn" value="'+esc(s.name)+'" style="max-width:120px"><button class="chip" id="pskin" title="Change or paint character">🎨 '+esc((s.cos[s.cn]||{}).svg?'vector':((s.cos[s.cn]||{}).art||'dog').startsWith('custom_')?'painted':(s.cos[s.cn]||{}).art||'dog')+'</button><button class="chip" id="psnd" title="Sounds">🔊 Sounds ('+((s.sounds||[]).length)+')</button></div><label>x</label><input id="px" type="number" value="'+Math.round(s.x)+'"><label>y</label><input id="py" type="number" value="'+Math.round(s.y)+'"><label>Size</label><input id="ps" type="number" value="'+Math.round(s.size)+'"><label>Dir</label><input id="pd" type="number" value="'+Math.round(s.dir)+'">';
  const bn=(id,k,f)=>{$('#'+id,box).onchange=e=>{s[k]=f?f(e.target.value):e.target.value;draw();save();if(k==='name'){renderSpr();renderPal();}};};bn('pn','name');bn('px','x',toNum);bn('py','y',toNum);bn('ps','size',v=>clamp(toNum(v),10,400));bn('pd','dir',v=>wrapDir(toNum(v)));
- $('#pskin',box).onclick=()=>openGal(a=>{(s.cos[s.cn]||(s.cos[s.cn]={})).art=a;draw();renderSpr();renderProps();save();});
+ $('#pskin',box).onclick=()=>openGal(a=>{const co=s.cos[s.cn]||(s.cos[s.cn]={});if(a&&a.svg){co.svg=a.svg;delete co.art;co.name=co.name||'vector';}else{co.art=a;delete co.svg;}MASKC.clear();draw();renderSpr();renderProps();save();});
  $('#psnd',box).onclick=()=>openSounds();}
 const esc=s=>(''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function openBdPicker(title,defName,defFill,cb){
@@ -1061,7 +1064,7 @@ $('#bdPaint').onclick=()=>{closeOv('ovBd');addBdPaint();};
 $('#bdSolid').onclick=()=>{closeOv('ovBd');addBdColor();};
 function selSpr(id){PROJ.cur=id;renderSpr();renderWs();renderPal();save();}
 const ARTS=['cookie','dog','cat','ghost','slime','frog','bird','robot','hero','alien','pig','bee','fish','mole','ufo','star','heart','gem','sun','skull','coin','ball','block','rock'];
-function addSpr(){openGal(a=>{const s=newSprite(uniq('Sprite',PROJ.sprites.map(x=>x.name)),a);s.x=rnd(-100,100);s.y=rnd(-60,60);PROJ.sprites.push(s);selSpr(s.id);draw();save();toast('Added '+a);});}
+function addSpr(){openGal(a=>{const s=newSprite(uniq('Sprite',PROJ.sprites.map(x=>x.name)),'dog');if(a&&a.svg){s.cos=[{name:'vector',svg:a.svg}];}else{s.cos=[{name:'c1',art:a}];}s.x=rnd(-100,100);s.y=rnd(-60,60);PROJ.sprites.push(s);selSpr(s.id);draw();save();toast('Added sprite');});}
 function dupSpr(s){const c=JSON.parse(JSON.stringify(s));c.id=uid('s');c.name=uniq(s.name,PROJ.sprites.map(x=>x.name));c.clone=0;c.x+=20;PROJ.sprites.push(c);selSpr(c.id);draw();save();}
 function delSpr(s){if(PROJ.sprites.filter(x=>!x.clone).length<=1){toast('Keep one sprite');return;}pushU();
  const dead=new Set(PROJ.sprites.filter(x=>x===s||(x.clone&&x.scripts===s.scripts)));  /* remove the sprite AND all its live clones (they share the scripts ref) so no threads leak */
@@ -1251,7 +1254,8 @@ function exitPlay(){stopEvery();try{if(document.fullscreenElement&&document.exit
 /* character gallery */
 let galCb=null;
 function openGal(cb){galCb=cb;const g=$('#galGrid');g.innerHTML='';
- const paint=document.createElement('button');paint.className='gc';paint.style.cssText='align-items:center;justify-content:center;padding:8px;cursor:pointer;background:var(--accent);color:#fff;min-height:70px';paint.innerHTML='<div style="font-size:26px">🎨</div><div style="font-size:9px;font-weight:900;margin-top:3px">Paint your own!</div>';paint.onclick=()=>openPaint(name=>{closeOv('ovGal');const cb2=galCb;galCb=null;if(cb2)cb2(name);});g.appendChild(paint);
+ const paint=document.createElement('button');paint.className='gc';paint.style.cssText='align-items:center;justify-content:center;padding:8px;cursor:pointer;background:var(--accent);color:#fff;min-height:70px';paint.innerHTML='<div style="font-size:26px">🎨</div><div style="font-size:9px;font-weight:900;margin-top:3px">Paint (pixels)</div>';paint.onclick=()=>openPaint(name=>{closeOv('ovGal');const cb2=galCb;galCb=null;if(cb2)cb2(name);});g.appendChild(paint);
+ const vecb=document.createElement('button');vecb.className='gc';vecb.style.cssText='align-items:center;justify-content:center;padding:8px;cursor:pointer;background:#7c4dff;color:#fff;min-height:70px';vecb.innerHTML='<div style="font-size:26px">&#9998;</div><div style="font-size:9px;font-weight:900;margin-top:3px">Vector (SVG)</div>';vecb.onclick=()=>openVec(v=>{closeOv('ovGal');const cb2=galCb;galCb=null;if(cb2)cb2(v);});g.appendChild(vecb);
  const arts=[...Object.keys((typeof PROJ!=='undefined'&&PROJ.customArt)||{}),...ARTS];
  arts.forEach(a=>{const c=document.createElement('button');c.className='gc';c.style.cssText='align-items:center;padding:8px;cursor:pointer;background:var(--panel2)';const cn=document.createElement('canvas');cn.width=52;cn.height=44;const x=cn.getContext('2d');x.imageSmoothingEnabled=false;x.save();x.translate(26,22);drawArt(x,a,3);x.restore();const nm=document.createElement('div');nm.style.cssText='font-size:9px;font-weight:900;margin-top:3px';nm.textContent=a.startsWith('custom_')?'my char':a;c.append(cn,nm);c.onclick=()=>{closeOv('ovGal');galCb&&galCb(a);};g.appendChild(c);});openOv('ovGal');}
 $('#galX').onclick=()=>closeOv('ovGal');
@@ -1269,6 +1273,50 @@ $('#paintErase').onclick=()=>{PCOL=null;renderPaintPal();};
 $('#paintClear').onclick=()=>{PG=Array.from({length:16},()=>Array(16).fill(null));drawPaint();};
 $('#paintX').onclick=$('#paintCancel').onclick=()=>{closeOv('ovPaint');paintCb=null;};
 $('#paintSave').onclick=()=>{if(!PG.some(r=>r.some(c=>c))){toast('Draw something first!');return;}const name='custom_'+uid('c');PROJ.customArt=PROJ.customArt||{};PROJ.customArt[name]=PG.map(r=>r.slice());closeOv('ovPaint');save();const cb=paintCb;paintCb=null;if(cb)cb(name);};
+/* ---------- VECTOR (SVG) EDITOR — editable anchor points, crisp at any scale ---------- */
+let VEC=null,vecCb=null,vecDrag=null,VECCOL='#4c97ff';
+function openVec(cb){vecCb=cb;VEC={shapes:[],sel:-1};VECCOL='#4c97ff';const cs=$('#vecStroke');if(cs)cs.checked=false;addVecShape('ellipse');renderVecPal();drawVec();openOv('ovVec');}
+function addVecShape(type){let sh;
+ if(type==='ellipse')sh={type,pts:[{x:60,y:60},{x:140,y:140}],fill:VECCOL,stroke:0};
+ else if(type==='rect')sh={type,pts:[{x:65,y:65},{x:135,y:135}],fill:VECCOL,stroke:0};
+ else if(type==='triangle')sh={type:'poly',pts:[{x:100,y:55},{x:145,y:145},{x:55,y:145}],fill:VECCOL,stroke:0};
+ else if(type==='polygon'){sh={type:'poly',pts:[],fill:VECCOL,stroke:0};for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;sh.pts.push({x:r2(100+45*Math.cos(a)),y:r2(100+45*Math.sin(a))});}}
+ else sh={type:'line',pts:[{x:60,y:100},{x:140,y:100}],fill:VECCOL,stroke:1,sw:8};
+ VEC.shapes.push(sh);VEC.sel=VEC.shapes.length-1;drawVec();}
+function drawVecShape(x,sh,S){x.fillStyle=sh.fill;x.strokeStyle='#20233a';x.lineWidth=Math.max(1,(sh.sw||4)*S*0.5);const st=sh.stroke;
+ if(sh.type==='ellipse'){const[a,b]=sh.pts,cx=(a.x+b.x)/2*S,cy=(a.y+b.y)/2*S,rx=Math.abs(b.x-a.x)/2*S,ry=Math.abs(b.y-a.y)/2*S;x.beginPath();x.ellipse(cx,cy,rx,ry,0,0,7);x.fill();if(st)x.stroke();}
+ else if(sh.type==='rect'){const[a,b]=sh.pts;x.beginPath();x.rect(Math.min(a.x,b.x)*S,Math.min(a.y,b.y)*S,Math.abs(b.x-a.x)*S,Math.abs(b.y-a.y)*S);x.fill();if(st)x.stroke();}
+ else if(sh.type==='line'){const[a,b]=sh.pts;x.strokeStyle=sh.fill;x.lineWidth=(sh.sw||8)*S;x.lineCap='round';x.beginPath();x.moveTo(a.x*S,a.y*S);x.lineTo(b.x*S,b.y*S);x.stroke();}
+ else{x.beginPath();sh.pts.forEach((p,i)=>i?x.lineTo(p.x*S,p.y*S):x.moveTo(p.x*S,p.y*S));x.closePath();x.fill();if(st)x.stroke();}}
+function drawVec(){const cv=$('#vecCv');if(!cv)return;const x=cv.getContext('2d'),S=cv.width/200;x.clearRect(0,0,cv.width,cv.height);x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);
+ VEC.shapes.forEach(sh=>drawVecShape(x,sh,S));
+ const c=100*S;x.strokeStyle='rgba(43,143,255,.45)';x.lineWidth=1;x.beginPath();x.moveTo(c,0);x.lineTo(c,cv.height);x.moveTo(0,c);x.lineTo(cv.width,c);x.stroke();x.strokeStyle='rgba(233,75,75,.8)';x.strokeRect(c-7,c-7,14,14);
+ if(VEC.sel>=0&&VEC.shapes[VEC.sel]){VEC.shapes[VEC.sel].pts.forEach(p=>{x.fillStyle='#fff';x.strokeStyle='#2b8fff';x.lineWidth=2;x.beginPath();x.arc(p.x*S,p.y*S,5,0,7);x.fill();x.stroke();});}}
+function vecBBox(sh){const xs=sh.pts.map(p=>p.x),ys=sh.pts.map(p=>p.y);return{x0:Math.min(...xs),x1:Math.max(...xs),y0:Math.min(...ys),y1:Math.max(...ys)};}
+function vecInside(sh,mx,my){const b=vecBBox(sh);return mx>=b.x0-6&&mx<=b.x1+6&&my>=b.y0-6&&my<=b.y1+6;}
+function renderVecPal(){const p=$('#vecPal');if(!p)return;p.innerHTML='';PAINT_COLS.slice(0,12).forEach(c=>{const b=document.createElement('button');b.style.cssText='width:100%;height:22px;cursor:pointer;border:2px solid '+(c===VECCOL?'var(--ink)':'var(--edge)')+';background:'+c;b.onclick=()=>{VECCOL=c;if(VEC.sel>=0)VEC.shapes[VEC.sel].fill=c;renderVecPal();drawVec();};p.appendChild(b);});}
+function vecToSvg(){const parts=[];VEC.shapes.forEach(sh=>{const f=sh.fill,st=sh.stroke?' stroke="#20233a" stroke-width="'+(sh.sw||4)+'"':'';
+ if(sh.type==='ellipse'){const[a,b]=sh.pts;parts.push('<ellipse cx="'+r2((a.x+b.x)/2)+'" cy="'+r2((a.y+b.y)/2)+'" rx="'+r2(Math.abs(b.x-a.x)/2)+'" ry="'+r2(Math.abs(b.y-a.y)/2)+'" fill="'+f+'"'+st+'/>');}
+ else if(sh.type==='rect'){const[a,b]=sh.pts;parts.push('<rect x="'+r2(Math.min(a.x,b.x))+'" y="'+r2(Math.min(a.y,b.y))+'" width="'+r2(Math.abs(b.x-a.x))+'" height="'+r2(Math.abs(b.y-a.y))+'" fill="'+f+'"'+st+'/>');}
+ else if(sh.type==='line'){const[a,b]=sh.pts;parts.push('<line x1="'+r2(a.x)+'" y1="'+r2(a.y)+'" x2="'+r2(b.x)+'" y2="'+r2(b.y)+'" stroke="'+f+'" stroke-width="'+(sh.sw||8)+'" stroke-linecap="round"/>');}
+ else{parts.push('<polygon points="'+sh.pts.map(p=>r2(p.x)+','+r2(p.y)).join(' ')+'" fill="'+f+'"'+st+'/>');}});
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">'+parts.join('')+'</svg>';}
+(function(){const vc=$('#vecCv');if(!vc)return;
+ const at=e=>{const r=vc.getBoundingClientRect();return{mx:(e.clientX-r.left)/r.width*200,my:(e.clientY-r.top)/r.height*200};};
+ vc.addEventListener('pointerdown',e=>{e.preventDefault();const{mx,my}=at(e);
+  if(VEC.sel>=0){const sh=VEC.shapes[VEC.sel];for(let i=0;i<sh.pts.length;i++)if(Math.hypot(sh.pts[i].x-mx,sh.pts[i].y-my)<9){vecDrag={sh,i};return;}}
+  for(let i=VEC.shapes.length-1;i>=0;i--)if(vecInside(VEC.shapes[i],mx,my)){VEC.sel=i;VECCOL=VEC.shapes[i].fill;renderVecPal();drawVec();return;}
+  VEC.sel=-1;drawVec();});
+ addEventListener('pointermove',e=>{if(!vecDrag)return;let{mx,my}=at(e);if(Math.abs(mx-100)<7)mx=100;if(Math.abs(my-100)<7)my=100;vecDrag.sh.pts[vecDrag.i].x=clamp(r2(mx),2,198);vecDrag.sh.pts[vecDrag.i].y=clamp(r2(my),2,198);drawVec();});
+ addEventListener('pointerup',()=>{vecDrag=null;});
+ $$('[data-vs]').forEach(b=>b.onclick=()=>addVecShape(b.dataset.vs));
+ $('#vecStroke').onchange=e=>{if(VEC.sel>=0){VEC.shapes[VEC.sel].stroke=e.target.checked?1:0;drawVec();}};
+ $('#vecAddPt').onclick=()=>{if(VEC.sel<0)return;const sh=VEC.shapes[VEC.sel];if(sh.type!=='poly'){toast('Add points to a Polygon/Triangle');return;}const n=sh.pts.length,a=sh.pts[n-1],b=sh.pts[0];sh.pts.push({x:r2((a.x+b.x)/2),y:r2((a.y+b.y)/2)});drawVec();};
+ $('#vecDelPt').onclick=()=>{if(VEC.sel<0)return;const sh=VEC.shapes[VEC.sel];if(sh.type==='poly'&&sh.pts.length>3){sh.pts.pop();drawVec();}};
+ $('#vecDel').onclick=()=>{if(VEC.sel<0)return;VEC.shapes.splice(VEC.sel,1);VEC.sel=VEC.shapes.length-1;drawVec();};
+ $('#vecX').onclick=$('#vecCancel').onclick=()=>{closeOv('ovVec');vecCb=null;};
+ $('#vecSave').onclick=()=>{if(!VEC.shapes.length){toast('Add a shape first');return;}const svg=vecToSvg();closeOv('ovVec');const cb=vecCb;vecCb=null;if(cb)cb({svg});};
+})();
 /* ---------- SOUND MANAGER UI ---------- */
 function sndTarget(){return editT();}
 function openSounds(){const s=sndTarget();$('#sndWho').textContent=s.stage?'Stage':s.name;$('#sndLib').style.display='none';$('#sndRecBox').style.display='none';stopRecCleanup();renderSoundList();openOv('ovSound');}
@@ -1530,7 +1578,7 @@ function openCover(def,cb){coverResolve=cb;coverState={art:def.art||'dog',bg:def
  const bb=$('#covBgs');bb.innerHTML='';bgs.forEach(([c,n])=>{const b=document.createElement('button');b.style.background=c;if(c===coverState.bg)b.className='on';b.onclick=()=>{coverState.bg=c;coverState.bn=n;coverState.img=null;$('#covUp').value='';$$('#covBgs button').forEach(z=>z.className='');b.className='on';drawCovPrev();};bb.appendChild(b);});
  $('#covTitle').value=coverState.title;$('#covTitle').oninput=()=>{coverState.title=$('#covTitle').value;drawCovPrev();};
  $('#covSub').value='';$('#covSub').oninput=()=>{coverState.sub=$('#covSub').value;drawCovPrev();};
- $('#covChar').onclick=()=>openGal(a=>{coverState.art=a;coverState.img=null;$('#covUp').value='';drawCovPrev();});
+ $('#covChar').onclick=()=>openGal(a=>{if(a&&a.svg){toast('Pick a pixel character for the cover');return;}coverState.art=a;coverState.img=null;$('#covUp').value='';drawCovPrev();});
  $('#covUp').value='';$('#covUpName').textContent='';$('#covUpBtn').onclick=()=>$('#covUp').click();
  $('#covUp').onchange=e=>{const f=e.target.files[0];if(!f)return;$('#covUpName').textContent=f.name.slice(0,24);const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const cc=document.createElement('canvas');cc.width=260;cc.height=180;cc.getContext('2d').drawImage(im,0,0,260,180);coverState.img=cc.toDataURL('image/jpeg',0.6);drawCovPrev();};im.onerror=()=>toast('Could not read image');im.src=rd.result;};rd.readAsDataURL(f);};
  drawCovPrev();
