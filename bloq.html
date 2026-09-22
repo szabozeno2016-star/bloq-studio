@@ -555,7 +555,37 @@ const KEYS=['space','up arrow','down arrow','left arrow','right arrow','any','w'
 const nk=k=>{k=(''+k).toLowerCase();return{space:' ','up arrow':'arrowup','down arrow':'arrowdown','left arrow':'arrowleft','right arrow':'arrowright'}[k]||k;};
 function tgtMenu(mouse,me,edge){const a=[];if(edge)a.push('_edge_');if(mouse)a.push('_mouse_');if(me)a.push('_myself_');if(arguments.length&&mouse&&!me&&!edge)a.push('_random_');PROJ.sprites.forEach(s=>{if(!s.clone)a.push(s.name)});return a;}
 function tpt(f,rand){if(f==='_mouse_')return{x:IO.mx,y:IO.my};if(f==='_random_'||(rand&&f==='_random_'))return{x:rnd(-220,220),y:rnd(-160,160)};const s=PROJ.sprites.find(s=>s.name===f&&!s.clone)||PROJ.sprites.find(s=>s.name===f);return s?{x:s.x,y:s.y}:(f==='_random_'?{x:rnd(-220,220),y:rnd(-160,160)}:null);}
-function touching(s,o){if(o==='_edge_')return s.x<=-232||s.x>=232||s.y<=-172||s.y>=172;if(o==='_mouse_')return Math.abs(IO.mx-s.x)<s.size/100*20&&Math.abs(IO.my-s.y)<s.size/100*20;const hw=s.size/100*20;return PROJ.sprites.some(t=>{if(t.name!==o||t===s||!t.vis)return false;const thw=t.size/100*20;return Math.abs(t.x-s.x)<hw+thw&&Math.abs(t.y-s.y)<hw+thw;});}
+/* ---- SVG (vector) costume images, cached by svg string; redraw when one loads ---- */
+const SVGIMG=new Map();
+function svgImage(svg){if(!svg)return null;let img=SVGIMG.get(svg);if(img)return img;img=new Image();img.onload=()=>{try{draw();}catch(e){}};try{img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}catch(e){}SVGIMG.set(svg,img);if(SVGIMG.size>160)SVGIMG.clear();return img;}
+/* ---- pixel-perfect collision: cache each sprite's non-transparent pixel mask (scale/flip/costume), rotation handled by inverse-rotating the sample point ---- */
+const MASKC=new Map();
+function spriteMask(s){const co=s.cos[s.cn]||{},sc=(s.size||100)/100,fx=(s.rot==='lr'&&s.dir<0)?-1:1;
+ const key=(co.svg?('svg'+(co.svg.length)):(co.art||'dog'))+'|'+Math.round(sc*100)+'|'+fx+'|'+s.cn;
+ let m=MASKC.get(key);if(m)return m;
+ const base=32*sc,M=Math.max(8,Math.ceil(base*1.2)+8);
+ const c=document.createElement('canvas');c.width=M;c.height=M;const g=c.getContext('2d');g.imageSmoothingEnabled=false;
+ g.save();g.translate(M/2,M/2);g.scale(sc*fx,sc);
+ if(co.svg){const img=svgImage(co.svg);if(img&&img.complete&&img.naturalWidth){const iw=img.naturalWidth,ih=img.naturalHeight,scl=32/Math.max(iw,ih);g.drawImage(img,-iw*scl/2,-ih*scl/2,iw*scl,ih*scl);}else{MASKC.delete(key);return{c,M,data:null,pending:1};}}
+ else drawArt(g,co.art||'dog',4);
+ g.restore();let data=null;try{data=g.getImageData(0,0,M,M).data;}catch(e){}
+ m={c,M,data};MASKC.set(key,m);if(MASKC.size>240)MASKC.clear();return m;}
+function spriteCovers(s,px,py){const m=spriteMask(s);if(!m||!m.data)return false;
+ let ox=px-s.x,oy=-(py-s.y);
+ if(s.rot==='all'){const rot=((s.dir||90)-90)*DEG,cs=Math.cos(rot),sn=Math.sin(rot);const lx=ox*cs+oy*sn,ly=-ox*sn+oy*cs;ox=lx;oy=ly;}
+ const xi=Math.round(m.M/2+ox),yi=Math.round(m.M/2+oy);
+ if(xi<0||yi<0||xi>=m.M||yi>=m.M)return false;
+ return m.data[(yi*m.M+xi)*4+3]>20;}
+function touching(s,o){if(o==='_edge_')return s.x<=-232||s.x>=232||s.y<=-172||s.y>=172;
+ if(!s.vis)return false;
+ if(o==='_mouse_')return spriteCovers(s,IO.mx,IO.my);
+ const hw=(s.size||100)/100*18+2;
+ return PROJ.sprites.some(t=>{if(t.name!==o||t===s||!t.vis)return false;const thw=(t.size||100)/100*18+2;
+  if(Math.abs(t.x-s.x)>hw+thw||Math.abs(t.y-s.y)>hw+thw)return false;  // cheap bbox reject
+  const x0=Math.max(s.x-hw,t.x-thw),x1=Math.min(s.x+hw,t.x+thw),y0=Math.max(s.y-hw,t.y-thw),y1=Math.min(s.y+hw,t.y+thw);
+  const span=Math.max(x1-x0,y1-y0),step=span>150?2:1;
+  let n=0;for(let py=y0;py<=y1;py+=step)for(let px=x0;px<=x1;px+=step){if(++n>16000)return false;if(spriteCovers(s,px,py)&&spriteCovers(t,px,py))return true;}
+  return false;});}
 const COLMAP={red:'#ff2b2b',orange:'#ff9f1c',yellow:'#ffd23f',green:'#3fbf4f',blue:'#2b8fff',purple:'#9b5cff',pink:'#ff5a8a',black:'#111018',white:'#ffffff'};
 /* touching color: sample the rendered stage in the sprite's footprint for that colour (best-effort, not pixel-perfect) */
 function touchColor(s,hex){try{const cv=document.getElementById('stage');if(!cv)return false;const ctx=cv.getContext('2d');const p=scr(s.x,s.y),rad=Math.max(9,s.size/100*15);const x0=clamp(Math.round(p[0]-rad),0,cv.width-1),y0=clamp(Math.round(p[1]-rad),0,cv.height-1),w=clamp(Math.round(rad*2),1,cv.width-x0),h=clamp(Math.round(rad*2),1,cv.height-y0);const d=ctx.getImageData(x0,y0,w,h).data,tr=parseInt(hex.slice(1,3),16),tg=parseInt(hex.slice(3,5),16),tb=parseInt(hex.slice(5,7),16);for(let i=0;i<d.length;i+=4){if(d[i+3]<12)continue;if(Math.abs(d[i]-tr)<46&&Math.abs(d[i+1]-tg)<46&&Math.abs(d[i+2]-tb)<46)return true;}return false;}catch(e){return false;}}
