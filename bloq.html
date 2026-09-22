@@ -342,6 +342,7 @@ input,select{font-family:inherit;font-weight:800}
    <div id="sndLib" style="display:none;margin-top:14px;border-top:3px solid var(--edge);padding-top:12px"><div style="font-weight:900;font-size:11px;color:var(--muted);margin-bottom:8px">TAP TO PREVIEW &middot; TAP &#43; TO ADD</div><div id="sndLibGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px"></div></div>
    <div id="sndRecBox" style="display:none;margin-top:14px;border-top:3px solid var(--edge);padding-top:12px"><div id="sndRecUI"></div></div>
   </div></div></div>
+<div class="ov" id="ovWave"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#127899; SOUND EDITOR &mdash; <span id="waveName">sound</span></h2><div class="sp" style="flex:1"></div><button class="btn ico" id="waveX">&#10005;</button></div><div class="sbody"><canvas id="waveCv" width="600" height="150" style="width:100%;height:150px;border:3px solid var(--edge);background:#0d1330;cursor:crosshair;touch-action:none;box-shadow:var(--sh)"></canvas><div style="color:var(--muted);font-weight:800;font-size:11px;margin-top:6px">Drag on the wave to select a section &middot; <span id="waveInfo"></span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn prim" id="wavePlay">&#9654; Play</button><button class="btn" id="waveSel">Play selection</button><button class="btn" id="waveTrim">&#9986; Trim to selection</button><button class="btn" id="waveFadeIn">Fade in</button><button class="btn" id="waveFadeOut">Fade out</button></div><div style="font-weight:900;font-size:11px;color:var(--muted);margin:12px 0 4px">EFFECTS</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" id="fxRobot">&#129302; Robot</button><button class="btn" id="fxEcho">&#128266; Echo</button><button class="btn" id="fxFaster">&#9193; Faster / higher</button><button class="btn" id="fxSlower">&#9194; Slower / lower</button><button class="btn" id="fxReverse">&#9664; Reverse</button><button class="btn" id="fxLouder">&#128227; Louder</button><button class="btn" id="waveUndo">&#8634; Undo</button></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" id="waveCancel">Cancel</button><button class="btn prim" id="waveSave">&#10003; Save sound</button></div></div></div></div>
 <div class="ov" id="ovProc"><div class="sheet" style="max-width:660px"><div class="shead"><h2 style="font-size:12px">&#129513; MAKE A BLOCK</h2><div class="sp" style="flex:1"></div><button class="btn ico" id="procX">&#10005;</button></div>
   <div class="sbody">
    <div id="procDelWrap" style="text-align:center;margin-bottom:6px;display:none"><button id="procDel" title="Delete this block" style="border:0;background:transparent;font-size:20px;cursor:pointer">&#128465;</button></div>
@@ -1327,9 +1328,50 @@ function renderSoundList(){const s=sndTarget();const el=$('#sndList');el.innerHT
   const em=document.createElement('span');em.style.fontSize='18px';em.textContent=snd.kind==='rec'?'🎤':((SNDLIB[snd.synth]||{}).e||'🔊');
   const nm=document.createElement('input');nm.value=snd.name;nm.style.cssText='flex:1;border:2px solid var(--edge);background:var(--panel);padding:5px 7px;color:var(--ink);font-weight:900;min-width:60px';
   nm.onchange=()=>{const v=(nm.value||'').trim();if(!v){nm.value=snd.name;return;}snd.name=uniq(v,list.filter(x=>x!==snd).map(x=>x.name));nm.value=snd.name;save();renderPal();renderProps();};
+  const edit=document.createElement('button');edit.className='btn';edit.style.cssText='padding:5px 10px';edit.textContent='🎚️';edit.title='Edit (trim, fade, effects)';edit.onclick=()=>openWave(snd);
   const del=document.createElement('button');del.className='btn rr';del.style.cssText='padding:5px 10px';del.textContent='🗑';del.title='Delete';del.onclick=()=>{list.splice(i,1);if(snd.id)delete soundBufs[snd.id];save();renderSoundList();renderPal();renderProps();sfx(300,90);};
-  row.append(play,em,nm,del);el.appendChild(row);});}
+  row.append(play,em,nm,edit,del);el.appendChild(row);});}
 function addSoundToTarget(base){const s=sndTarget();s.sounds=s.sounds||[];const snd={id:uid('snd'),name:uniq(base.name,s.sounds.map(x=>x.name)),kind:base.kind,synth:base.synth,data:base.data,dur:base.dur};s.sounds.push(snd);if(snd.kind==='rec')decodeRec(snd);save();renderSoundList();renderPal();renderProps();toast('Added sound: '+snd.name);sfx(760);}
+/* ---------- SOUND EDITOR: waveform view, trim, fade, effects ---------- */
+let WAVE=null;
+async function renderSynthBuffer(snd){const lib=SNDLIB[snd.synth]||SNDLIB.pop;const dur=(lib.dur||.3)+.12,sr=44100;const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;const oac=new OAC(1,Math.max(1,Math.ceil(sr*dur)),sr);try{lib.f(oac,oac.destination,0,1);}catch(e){}return await oac.startRendering();}
+async function soundToBuffer(snd){const a=actx();if(snd.kind==='rec'&&snd.data){const ab=await(await fetch(snd.data)).arrayBuffer();return await a.decodeAudioData(ab.slice(0));}return await renderSynthBuffer(snd);}
+async function openWave(snd){$('#waveName').textContent=snd.name;WAVE=null;$('#waveInfo').textContent='loading…';openOv('ovWave');try{const buf=await soundToBuffer(snd);WAVE={snd,ch:Float32Array.from(buf.getChannelData(0)),sr:buf.sampleRate,sel:null,history:[]};drawWave();updWaveInfo();}catch(e){$('#waveInfo').textContent='could not load this sound';}}
+function updWaveInfo(){if(!WAVE)return;let t='length '+(WAVE.ch.length/WAVE.sr).toFixed(2)+'s';if(WAVE.sel&&WAVE.sel[1]>WAVE.sel[0])t+=' · selection '+((WAVE.sel[1]-WAVE.sel[0])/WAVE.sr).toFixed(2)+'s';$('#waveInfo').textContent=t;}
+function drawWave(){const cv=$('#waveCv');if(!cv||!WAVE)return;const x=cv.getContext('2d'),W=cv.width,H=cv.height,ch=WAVE.ch,n=ch.length;x.clearRect(0,0,W,H);x.fillStyle='#0d1330';x.fillRect(0,0,W,H);
+ if(WAVE.sel&&WAVE.sel[1]>WAVE.sel[0]){const a=WAVE.sel[0]/n*W,b=WAVE.sel[1]/n*W;x.fillStyle='rgba(43,143,255,.28)';x.fillRect(a,0,b-a,H);}
+ x.strokeStyle='rgba(255,255,255,.14)';x.lineWidth=1;x.beginPath();x.moveTo(0,H/2);x.lineTo(W,H/2);x.stroke();
+ x.strokeStyle='#4cc2ff';x.beginPath();const step=n/W;for(let px=0;px<W;px++){let lo=1,hi=-1;const i0=Math.floor(px*step),i1=Math.min(n,Math.floor((px+1)*step));for(let i=i0;i<i1;i++){const v=ch[i];if(v<lo)lo=v;if(v>hi)hi=v;}if(i1<=i0){lo=hi=0;}const y0=H/2-hi*H/2*.95,y1=H/2-lo*H/2*.95;x.moveTo(px,y0);x.lineTo(px,Math.max(y1,y0+1));}x.stroke();}
+function playChan(ch,sr){const a=actx();const buf=a.createBuffer(1,Math.max(1,ch.length),sr);buf.getChannelData(0).set(ch);const s=a.createBufferSource();s.buffer=buf;const g=a.createGain();g.gain.value=.9;s.connect(g);g.connect(a.destination);s.start();regNode(s);}
+function pushWave(){if(!WAVE)return;WAVE.history.push(Float32Array.from(WAVE.ch));if(WAVE.history.length>20)WAVE.history.shift();}
+function selRange(){if(WAVE.sel&&WAVE.sel[1]-WAVE.sel[0]>4)return[WAVE.sel[0],WAVE.sel[1]];return[0,WAVE.ch.length];}
+function resampleCh(ch,ratio){const n=Math.max(1,Math.round(ch.length/ratio)),out=new Float32Array(n);for(let i=0;i<n;i++){const src=i*ratio,i0=Math.floor(src),f=src-i0;out[i]=(ch[i0]||0)*(1-f)+(ch[i0+1]||0)*f;}return out;}
+function normalizeCh(ch){let mx=0;for(let i=0;i<ch.length;i++)mx=Math.max(mx,Math.abs(ch[i]));if(mx>1)for(let i=0;i<ch.length;i++)ch[i]/=mx;}
+function chanToWav(ch,sr){const n=ch.length,ab=new ArrayBuffer(44+n*2),v=new DataView(ab),ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+ ws(0,'RIFF');v.setUint32(4,36+n*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*2,true);
+ let o=44;for(let i=0;i<n;i++){let s=clamp(ch[i],-1,1);v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);o+=2;}return ab;}
+function wavDataUrl(ch,sr){const ab=chanToWav(ch,sr),bytes=new Uint8Array(ab);let bin='';for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return 'data:audio/wav;base64,'+btoa(bin);}
+(function(){const cv=$('#waveCv');if(!cv)return;let dragging=0,sx=0;
+ const xToS=e=>{const r=cv.getBoundingClientRect();return clamp(Math.round((e.clientX-r.left)/r.width*WAVE.ch.length),0,WAVE.ch.length);};
+ cv.addEventListener('pointerdown',e=>{if(!WAVE)return;e.preventDefault();dragging=1;sx=xToS(e);WAVE.sel=[sx,sx];drawWave();});
+ addEventListener('pointermove',e=>{if(!dragging||!WAVE)return;const c=xToS(e);WAVE.sel=[Math.min(sx,c),Math.max(sx,c)];drawWave();updWaveInfo();});
+ addEventListener('pointerup',()=>{if(dragging){dragging=0;if(WAVE&&WAVE.sel&&WAVE.sel[1]-WAVE.sel[0]<WAVE.sr*0.01){WAVE.sel=null;drawWave();updWaveInfo();}}});
+ const H=(id,fn)=>{const el=$('#'+id);if(el)el.onclick=()=>{if(!WAVE&&id!=='waveX'&&id!=='waveCancel')return;fn();};};
+ H('wavePlay',()=>playChan(WAVE.ch,WAVE.sr));
+ H('waveSel',()=>{const[a,b]=selRange();playChan(WAVE.ch.slice(a,b),WAVE.sr);});
+ H('waveTrim',()=>{if(!WAVE.sel||WAVE.sel[1]-WAVE.sel[0]<10){toast('Drag on the wave to select a part first');return;}pushWave();WAVE.ch=WAVE.ch.slice(WAVE.sel[0],WAVE.sel[1]);WAVE.sel=null;drawWave();updWaveInfo();});
+ H('waveFadeIn',()=>{pushWave();const[a,b]=selRange();for(let i=a;i<b;i++)WAVE.ch[i]*=(i-a)/(b-a);drawWave();});
+ H('waveFadeOut',()=>{pushWave();const[a,b]=selRange();for(let i=a;i<b;i++)WAVE.ch[i]*=1-(i-a)/(b-a);drawWave();});
+ H('fxRobot',()=>{pushWave();const[a,b]=selRange(),sr=WAVE.sr,fc=55;for(let i=a;i<b;i++){const car=Math.sin(2*Math.PI*fc*(i/sr))>=0?1:0;WAVE.ch[i]*=(0.35+0.65*car);}drawWave();});
+ H('fxEcho',()=>{pushWave();const sr=WAVE.sr,D=Math.floor(sr*0.13),tail=D*3,src=WAVE.ch,out=new Float32Array(src.length+tail);for(let i=0;i<out.length;i++){let vv=i<src.length?src[i]:0;if(i>=D)vv+=out[i-D]*0.5;out[i]=vv;}normalizeCh(out);WAVE.ch=out;WAVE.sel=null;drawWave();updWaveInfo();});
+ H('fxFaster',()=>{pushWave();WAVE.ch=resampleCh(WAVE.ch,1.4);WAVE.sel=null;drawWave();updWaveInfo();});
+ H('fxSlower',()=>{pushWave();WAVE.ch=resampleCh(WAVE.ch,0.72);WAVE.sel=null;drawWave();updWaveInfo();});
+ H('fxReverse',()=>{pushWave();const[a,b]=selRange();for(let i=a,j=b-1;i<j;i++,j--){const t=WAVE.ch[i];WAVE.ch[i]=WAVE.ch[j];WAVE.ch[j]=t;}drawWave();});
+ H('fxLouder',()=>{pushWave();const[a,b]=selRange();for(let i=a;i<b;i++)WAVE.ch[i]=clamp(WAVE.ch[i]*1.6,-1,1);drawWave();});
+ H('waveUndo',()=>{if(WAVE.history.length){WAVE.ch=WAVE.history.pop();WAVE.sel=null;drawWave();updWaveInfo();}else toast('Nothing to undo');});
+ H('waveSave',()=>{let ch=WAVE.ch,sr=WAVE.sr;if(sr>22050){ch=resampleCh(ch,sr/22050);sr=22050;}const url=wavDataUrl(ch,sr);const snd=WAVE.snd;snd.kind='rec';snd.data=url;snd.synth=undefined;snd.dur=ch.length/sr;delete soundBufs[snd.id];decodeRec(snd);closeOv('ovWave');WAVE=null;save();renderSoundList();renderPal();renderProps();toast('Sound saved ✓');});
+ $('#waveX').onclick=$('#waveCancel').onclick=()=>{closeOv('ovWave');WAVE=null;};
+})();
 $('#sndX').onclick=()=>{stopRecCleanup();dismissOv('ovSound');};
 $('#sndAdd').onclick=()=>{const lib=$('#sndLib');const show=lib.style.display==='none';$('#sndRecBox').style.display='none';stopRecCleanup();lib.style.display=show?'':'none';if(show)renderSndLib();};
 function renderSndLib(){const g=$('#sndLibGrid');g.innerHTML='';Object.keys(SNDLIB).forEach(key=>{const L=SNDLIB[key];const card=document.createElement('div');card.style.cssText='border:2px solid var(--edge);background:var(--panel2);padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';card.title='Preview '+key;card.onclick=()=>previewSound({name:key,kind:'synth',synth:key});
